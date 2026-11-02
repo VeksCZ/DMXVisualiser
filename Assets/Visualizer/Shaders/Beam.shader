@@ -9,6 +9,7 @@ Shader "Visualizer/Beam"
         _Intensity ("Intensity", Float) = 1
         _EdgeSoftness ("Edge softness", Range(0.5, 6)) = 2
         _LengthFalloff ("Length falloff", Range(0.5, 4)) = 1.6
+        _NearFade ("Fade near camera (m)", Range(0.05, 3)) = 0.7
     }
     SubShader
     {
@@ -29,6 +30,7 @@ Shader "Visualizer/Beam"
             float _Intensity;
             float _EdgeSoftness;
             float _LengthFalloff;
+            float _NearFade;
             float _Haze;
             float _FloorY;
             float _CeilingY;
@@ -73,7 +75,9 @@ Shader "Visualizer/Beam"
                 // Pod podlahou a nad stropem nic
                 float floorFade = saturate((i.wpos.y - _FloorY) / 0.05);
                 float ceilFade = saturate((_CeilingY - i.wpos.y) / 0.05);
-                float a = edge * along * floorFade * ceilFade * _Intensity * _Haze;
+                // Blízko kamery paprsek plynule mizí – ve VR (nebo při průletu) jinak hlava uvnitř kužele oslepí
+                float nearFade = smoothstep(0.0, 1.0, saturate(distance(_WorldSpaceCameraPos, i.wpos) / _NearFade));
+                float a = edge * along * floorFade * ceilFade * nearFade * _Intensity * _Haze;
                 // alfa 0: aditivní světlo nezakrývá passthrough (kompozitor bere alfu jako krytí)
                 return float4(_Color.rgb * a, 0);
             }

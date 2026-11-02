@@ -10,6 +10,7 @@
 
 ### Funkce
 - **Art-Net přímo ze SoundSwitche** – aplikace se v SoundSwitchi objeví jako Art-Net zařízení *DJ Visualizer*.
+- **sACN (E1.31)** – přijímá i sACN (UDP 5568, unicast i multicast k universům z patche); universa 1–32768, kontrola pořadí paketů a priorit.
 - **Windows aplikace** – virtuální sál s DJ stolem, několik pohledů kamery, demo režim bez SoundSwitche, mlha z hazeru.
 - **Seznam světel** – adresy, režimy, zobrazení/skrytí jednotlivých světel, detail kanálů.
 - **Kalibrace pohyblivých hlav** – pan/tilt offset, invertování, jedním klikem „současná pozice = střed parketu“ (SS Stage Center).
@@ -50,6 +51,8 @@ Unity.exe -batchmode -quit -projectPath . -buildTarget Win64 -executeMethod Buil
 Unity.exe -batchmode -quit -projectPath . -buildTarget Android -executeMethod BuildQuest.BuildAndInstall
 ```
 
+Unit testy (bez Unity – síťová vrstva, lokalizace, vestavěné profily): `dotnet test Tools/Tests/Unit/Tools.Tests.csproj`. Běží i v GitHub Actions.
+
 ---
 
 ## English
@@ -58,6 +61,7 @@ A 3D DMX lighting visualiser for **SoundSwitch**. It receives Art-Net straight f
 
 ### Features
 - **Art-Net directly from SoundSwitch** – the app shows up in SoundSwitch as the Art-Net device *DJ Visualizer*.
+- **sACN (E1.31)** – sACN is received too (UDP 5568, unicast and multicast for the universes used in the patch); universes 1–32768, packet-order and priority handling.
 - **Windows app** – virtual hall with a DJ table, several camera views, demo mode without SoundSwitch, haze from the hazer.
 - **Fixture list** – addresses, modes, show/hide per fixture, channel detail.
 - **Moving head calibration** – pan/tilt offset, invert, one click "current position = dance floor centre" (SS Stage Center).
@@ -97,3 +101,5 @@ Unity 6000.3.9f1 (URP). Build via *Tools → Visualizer* or from the command lin
 Unity.exe -batchmode -quit -projectPath . -buildTarget Win64 -executeMethod BuildVisualizer.Build
 Unity.exe -batchmode -quit -projectPath . -buildTarget Android -executeMethod BuildQuest.BuildAndInstall
 ```
+
+Unit tests (no Unity needed – network layer, localisation, built-in profiles): `dotnet test Tools/Tests/Unit/Tools.Tests.csproj`. They also run in GitHub Actions.
