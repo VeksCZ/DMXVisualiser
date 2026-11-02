@@ -130,6 +130,11 @@ public partial class VisualizerMenu : MonoBehaviour
         if (kb.hKey.wasPressedThisFrame) uiVisible = !uiVisible;
         if (kb.f11Key.wasPressedThisFrame) ToggleFullscreen();
         if (kb.f12Key.wasPressedThisFrame) TakeScreenshot();
+        if (kb.f5Key.wasPressedThisFrame) ToggleDemo();
+        if (kb.f6Key.wasPressedThisFrame) AddHaze(-0.1f);
+        if (kb.f7Key.wasPressedThisFrame) AddHaze(0.1f);
+        if (kb.f8Key.wasPressedThisFrame) AddRoomLight(-0.1f);
+        if (kb.f9Key.wasPressedThisFrame) AddRoomLight(0.1f);
         if (kb.escapeKey.wasPressedThisFrame) EscapePressed();
         if (kb.digit1Key.wasPressedThisFrame) SetCamera(0);
         if (kb.digit2Key.wasPressedThisFrame) SetCamera(1);
@@ -139,6 +144,11 @@ public partial class VisualizerMenu : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.H)) uiVisible = !uiVisible;
         if (Input.GetKeyDown(KeyCode.F11)) ToggleFullscreen();
         if (Input.GetKeyDown(KeyCode.F12)) TakeScreenshot();
+        if (Input.GetKeyDown(KeyCode.F5)) ToggleDemo();
+        if (Input.GetKeyDown(KeyCode.F6)) AddHaze(-0.1f);
+        if (Input.GetKeyDown(KeyCode.F7)) AddHaze(0.1f);
+        if (Input.GetKeyDown(KeyCode.F8)) AddRoomLight(-0.1f);
+        if (Input.GetKeyDown(KeyCode.F9)) AddRoomLight(0.1f);
         if (Input.GetKeyDown(KeyCode.Escape)) EscapePressed();
         for (int i = 0; i < 4; i++) if (Input.GetKeyDown(KeyCode.Alpha1 + i)) SetCamera(i);
 #endif

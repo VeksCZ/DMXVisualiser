@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using UnityEngine;
 using UnityEngine.Networking;
 using Debug = UnityEngine.Debug;
@@ -22,8 +23,9 @@ public class Updater : MonoBehaviour
     public float progress;
 
     string assetUrl;
+    long assetSize;
 
-    [Serializable] class GhAsset { public string name; public string browser_download_url; }
+    [Serializable] class GhAsset { public string name; public string browser_download_url; public long size; }
     [Serializable] class GhRelease { public string tag_name; public string html_url; public GhAsset[] assets; }
 
     public void Check()
@@ -54,9 +56,10 @@ public class Updater : MonoBehaviour
             latestVersion = rel.tag_name.TrimStart('v', 'V');
             releaseUrl = rel.html_url;
             assetUrl = null;
+            assetSize = 0;
             if (rel.assets != null)
                 foreach (var a in rel.assets)
-                    if (a.name != null && a.name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) { assetUrl = a.browser_download_url; break; }
+                    if (a.name != null && a.name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) { assetUrl = a.browser_download_url; assetSize = a.size; break; }
 
             state = IsNewer(latestVersion, Application.version) ? State.Available : State.UpToDate;
         }
@@ -108,6 +111,9 @@ public class Updater : MonoBehaviour
             if (req.result != UnityWebRequest.Result.Success) { state = State.Error; error = req.error; yield break; }
         }
 
+        // Ověření před ukončením aplikace: úplná velikost a čitelný zip s .exe uvnitř
+        if (!DownloadLooksValid(zip, assetSize)) { state = State.Error; error = Loc.T("updateCorrupt"); yield break; }
+
         state = State.Installing;
         string appDir = Path.GetDirectoryName(Application.dataPath);           // složka s .exe
         string exeName = Path.GetFileName(appDir) + ".exe";                      // fallback
@@ -116,17 +122,24 @@ public class Updater : MonoBehaviour
         int pid = Process.GetCurrentProcess().Id;
 
         string script = Path.Combine(tmp, "update.ps1");
+        // Celé v try/catch: při chybě se důvod zapíše do update.log a aplikace se stejně spustí znovu (stará verze zůstane).
         string ps =
             "$ErrorActionPreference = 'Stop'\n" +
-            "try { Wait-Process -Id " + pid + " -Timeout 30 -ErrorAction SilentlyContinue } catch {}\n" +
             "$tmp = '" + Esc(tmp) + "'\n" +
             "$app = '" + Esc(appDir) + "'\n" +
-            "$out = Join-Path $tmp 'unpacked'\n" +
-            "Expand-Archive -LiteralPath (Join-Path $tmp 'update.zip') -DestinationPath $out -Force\n" +
-            "$exe = Get-ChildItem -Path $out -Recurse -Filter '" + Esc(exeName) + "' | Select-Object -First 1\n" +
-            "if (-not $exe) { $exe = Get-ChildItem -Path $out -Recurse -Filter '*.exe' | Where-Object { $_.Name -notlike 'UnityCrashHandler*' } | Select-Object -First 1 }\n" +
-            "$src = $exe.DirectoryName\n" +
-            "robocopy $src $app /E /R:3 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null\n" +
+            "$log = Join-Path $tmp '" + LogName + "'\n" +
+            "try {\n" +
+            "  try { Wait-Process -Id " + pid + " -Timeout 30 -ErrorAction SilentlyContinue } catch {}\n" +
+            "  $out = Join-Path $tmp 'unpacked'\n" +
+            "  Expand-Archive -LiteralPath (Join-Path $tmp 'update.zip') -DestinationPath $out -Force\n" +
+            "  $exe = Get-ChildItem -Path $out -Recurse -Filter '" + Esc(exeName) + "' | Select-Object -First 1\n" +
+            "  if (-not $exe) { $exe = Get-ChildItem -Path $out -Recurse -Filter '*.exe' | Where-Object { $_.Name -notlike 'UnityCrashHandler*' } | Select-Object -First 1 }\n" +
+            "  if (-not $exe) { throw 'V archivu chybí .exe' }\n" +
+            "  robocopy $exe.DirectoryName $app /E /R:3 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null\n" +
+            "  if ($LASTEXITCODE -ge 8) { throw ('robocopy selhal, kód ' + $LASTEXITCODE) }\n" +
+            "} catch {\n" +
+            "  ($_ | Out-String) | Set-Content -Path $log -Encoding UTF8\n" +
+            "}\n" +
             "Start-Process -FilePath (Join-Path $app '" + Esc(exeName) + "')\n";
         try
         {
@@ -146,4 +159,43 @@ public class Updater : MonoBehaviour
     }
 
     static string Esc(string s) => s.Replace("'", "''");
+
+    const string LogName = "update.log";
+    static string TempDir => Path.Combine(Path.GetTempPath(), "DMXVisualiserUpdate");
+
+    // Zip musí mít očekávanou velikost (podle GitHubu), jít otevřít a obsahovat aplikaci (.exe).
+    public static bool DownloadLooksValid(string zipPath, long expectedSize)
+    {
+        try
+        {
+            var fi = new FileInfo(zipPath);
+            if (!fi.Exists || fi.Length == 0) return false;
+            if (expectedSize > 0 && fi.Length != expectedSize) return false;
+            using (var fs = File.OpenRead(zipPath))
+            using (var za = new ZipArchive(fs, ZipArchiveMode.Read))
+                foreach (var e in za.Entries)
+                    if (e.FullName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+                        !e.Name.StartsWith("UnityCrashHandler", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        catch (Exception e) { Debug.LogWarning("Update zip check failed: " + e.Message); }
+        return false;
+    }
+
+    // Po neúspěšné aktualizaci (skript zapsal log a spustil starou verzi) ukázat důvod v okně Aktualizace.
+    void Start()
+    {
+        try
+        {
+            string log = Path.Combine(TempDir, LogName);
+            if (!File.Exists(log)) return;
+            string msg = File.ReadAllText(log).Trim();
+            File.Delete(log);
+            if (msg.Length == 0) return;
+            if (msg.Length > 300) msg = msg.Substring(0, 300);
+            Debug.LogWarning("Last update failed: " + msg);
+            state = State.Error;
+            error = Loc.T("updateFailed") + " " + msg;
+        }
+        catch { }
+    }
 }
