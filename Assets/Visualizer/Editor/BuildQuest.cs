@@ -11,6 +11,7 @@ using UnityEditor.XR.OpenXR.Features;
 using UnityEngine;
 using UnityEngine.XR.Management;
 using UnityEngine.XR.OpenXR;
+using UnityEngine.XR.OpenXR.Features.MetaQuestSupport;
 using Debug = UnityEngine.Debug;
 
 // Quest 3 build: OpenXR jen pro Android (Windows exe zůstává bez VR), nastavení přehrávače
@@ -77,7 +78,44 @@ public static class BuildQuest
         SetDebugSymbolsSymbolTable();
         LinkVRAssets();
         AssetDatabase.SaveAssets();
+        ApplyBranding();
         Debug.Log("Quest: projekt nastaven (Android = OpenXR + Meta Quest, Windows bez XR)");
+    }
+
+    // Ikona aplikace v knihovně Questu (Legacy/Round/Adaptive) a systémový 3D splash (stereo PNG 2x 1600x1000, zobrazí ho OS
+    // hned po spuštění místo teček načítání). Zdroje: Assets/Branding (generuje Tools/Branding/make-art.ps1).
+    static void ApplyBranding()
+    {
+        const string iconPath = "Assets/Branding/DMXIcon.png", splashPath = "Assets/Branding/DMXSplash.png";
+        var icon = AssetDatabase.LoadAssetAtPath<Texture2D>(iconPath);
+        if (icon != null)
+        {
+            foreach (var kind in new[] { UnityEditor.Android.AndroidPlatformIconKind.Legacy, UnityEditor.Android.AndroidPlatformIconKind.Round, UnityEditor.Android.AndroidPlatformIconKind.Adaptive })
+            {
+                var icons = PlayerSettings.GetPlatformIcons(BuildTargetGroup.Android, kind);
+                foreach (var pi in icons)
+                {
+                    pi.layerCount = pi.maxLayerCount;
+                    pi.SetTextures(Enumerable.Repeat(icon, pi.layerCount).ToArray());
+                }
+                PlayerSettings.SetPlatformIcons(BuildTargetGroup.Android, kind, icons);
+            }
+        }
+        else Debug.LogWarning("Quest: " + iconPath + " nenalezen – ikona aplikace zůstane výchozí");
+
+        var imp = AssetImporter.GetAtPath(splashPath) as TextureImporter;
+        if (imp != null && (imp.maxTextureSize < 4096 || imp.mipmapEnabled || imp.textureCompression != TextureImporterCompression.Uncompressed))
+        {
+            imp.maxTextureSize = 4096; imp.mipmapEnabled = false; imp.textureCompression = TextureImporterCompression.Uncompressed;
+            imp.SaveAndReimport();
+        }
+        var splash = AssetDatabase.LoadAssetAtPath<Texture2D>(splashPath);
+        var oxr = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android);
+        var mq = oxr != null ? oxr.GetFeature<MetaQuestFeature>() : null;
+        if (splash != null && mq != null) { mq.systemSplashScreen = splash; EditorUtility.SetDirty(mq); }
+        else Debug.LogWarning("Quest: systémový splash se nenastavil (chybí " + splashPath + " nebo MetaQuestFeature)");
+        PlayerSettings.SplashScreen.show = false;   // vlastní splash místo Unity loga
+        AssetDatabase.SaveAssets();
     }
 
     [MenuItem("Tools/Visualizer/Quest: Build + Install")]
