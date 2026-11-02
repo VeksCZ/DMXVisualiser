@@ -48,6 +48,7 @@ public class VRRig : MonoBehaviour
         rig.RightHand = rig.Controller(offset, "RightHand");
         rig.RightAim = Pose(offset, "Aim R", "<XRController>{RightHand}/pointerPosition", "<XRController>{RightHand}/pointerRotation");
         root.AddComponent<VREnvironment>();
+        root.AddComponent<QualityGovernor>();
         root.AddComponent<VRMenu>();
         root.SetActive(true);
 

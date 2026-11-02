@@ -129,12 +129,14 @@ public static class VisUtil
         return tex;
     }
 
+    public static float LightCullThreshold = 0.003f;     // viz AdaptiveQuality
+
     // Nastaví jas a vypne zhasnutá světla – každé zapnuté světlo stojí výkon (hlavně na Questu), i když svítí 0.
     public static void SetLight(Light l, float intensity)
     {
         if (l == null) return;
         l.intensity = intensity;
-        bool on = intensity > 0.003f;
+        bool on = intensity > LightCullThreshold;
         if (l.enabled != on) l.enabled = on;
     }
 

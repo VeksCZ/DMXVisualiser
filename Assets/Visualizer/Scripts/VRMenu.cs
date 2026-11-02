@@ -258,7 +258,7 @@ public class VRMenu : MonoBehaviour
             wrist.color = live ? new Color(0.35f, 0.95f, 0.5f) : new Color(1f, 0.72f, 0.25f);
         }
         if (!open) return;
-        status.text = st + "\n" + Mathf.RoundToInt(app.Fps) + " FPS" + (env != null && env.Passthrough ? "   •   Passthrough: " + env.Diag : "");
+        status.text = st + "\n" + Mathf.RoundToInt(app.Fps) + " FPS" + (QualityGovernor.Level > 0 ? "   •   " + Loc.F("autoQuality", QualityGovernor.Level) : "") + (env != null && env.Passthrough ? "   •   Passthrough: " + env.Diag : "");
         status.color = live ? new Color(0.6f, 1f, 0.7f) : new Color(1f, 0.82f, 0.5f);
         // bez úvodního symbolu (▶/■ ve vestavěném fontu nemusí být)
         demoLabel.text = System.Text.RegularExpressions.Regex.Replace(app.DemoForced ? Loc.T("stopDemo") : Loc.T("startDemo"), @"^[^\p{L}]+", "");

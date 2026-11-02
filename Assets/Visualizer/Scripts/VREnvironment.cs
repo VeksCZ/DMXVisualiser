@@ -32,6 +32,17 @@ public class VREnvironment : MonoBehaviour
     Transform marker;
     bool permissionAsked;
     float baseRenderScale = -1f;
+    float qualityFactor = 1f;       // automatická kvalita (QualityGovernor)
+
+    // Automatická kvalita: render scale = základ × faktor. V passthrough zůstává 1 (viz Apply).
+    public void SetRenderQuality(float factor)
+    {
+        qualityFactor = factor;
+        var urp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+        if (urp == null) return;
+        if (baseRenderScale < 0f) baseRenderScale = urp.renderScale;
+        urp.renderScale = Passthrough ? 1f : baseRenderScale * qualityFactor;
+    }
 
     void Start()
     {
@@ -105,7 +116,7 @@ public class VREnvironment : MonoBehaviour
         if (urp != null)
         {
             if (baseRenderScale < 0f) baseRenderScale = urp.renderScale;
-            urp.renderScale = passthrough ? 1f : baseRenderScale;
+            urp.renderScale = passthrough ? 1f : baseRenderScale * qualityFactor;
         }
         planeManager.enabled = scanned;
         foreach (var kv in planes) if (kv.Key != null) kv.Key.gameObject.SetActive(scanned);
