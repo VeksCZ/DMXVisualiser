@@ -68,6 +68,6 @@ public class ParLight : MonoBehaviour
         if (leds != null) foreach (var l in leds) VisUtil.SetColor(l, color, I * 5f);
         else VisUtil.SetColor(lens, color, I * 5f);
         spot.color = color;
-        spot.intensity = I * lightIntensity;
+        VisUtil.SetLight(spot, I * lightIntensity);
     }
 }

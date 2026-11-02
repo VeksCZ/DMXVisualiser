@@ -40,6 +40,6 @@ public class Strobe : MonoBehaviour
             sum += ledLevels[i];
         }
         glow.color = cool;
-        glow.intensity = I * sum * 0.25f * lightIntensity;
+        VisUtil.SetLight(glow, I * sum * 0.25f * lightIntensity);
     }
 }

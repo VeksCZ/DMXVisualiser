@@ -84,7 +84,7 @@ public class MovingHead : MonoBehaviour
         VisUtil.SetColor(beam, color, I * beamBrightness);
         VisUtil.SetColor(lens, color, I * 6f);
         spot.color = color;
-        spot.intensity = I * lightIntensity;
+        VisUtil.SetLight(spot, I * lightIntensity);
 
         if (gobo != curGobo)
         {

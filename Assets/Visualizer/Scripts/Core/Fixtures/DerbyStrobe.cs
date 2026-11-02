@@ -36,6 +36,6 @@ public class DerbyStrobe : MonoBehaviour
         float I = strobeDimmer * VisUtil.StrobeGate(strobeHz, 0.1f);
         VisUtil.SetColor(panel, cool, I * 15f);
         glow.color = cool;
-        glow.intensity = I * strobeIntensity;
+        VisUtil.SetLight(glow, I * strobeIntensity);
     }
 }

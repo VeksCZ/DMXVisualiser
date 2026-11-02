@@ -51,6 +51,6 @@ public class PixelTube : MonoBehaviour
         avg /= segs.Length;
         float mx = Mathf.Max(avg.r, Mathf.Max(avg.g, avg.b));
         glow.color = mx > 0.001f ? avg / mx : Color.black;
-        glow.intensity = mx * master * lightIntensity;
+        VisUtil.SetLight(glow, mx * master * lightIntensity);
     }
 }

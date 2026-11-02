@@ -60,6 +60,6 @@ public class Laser : MonoBehaviour
         for (int i = 0; i < beams.Length; i++)
             VisUtil.SetColor(beams[i], color, I * brightness);
         VisUtil.SetColor(aperture, color, I * 4f);
-        if (dots != null) { dots.color = color; dots.intensity = I * dotIntensity; }
+        if (dots != null) { dots.color = color; VisUtil.SetLight(dots, I * dotIntensity); }
     }
 }

@@ -79,6 +79,7 @@ public static class VisUtil
         l.range = range;
         l.shadows = LightShadows.None;
         l.intensity = 0;
+        l.enabled = false;      // zapíná se až při svitu (SetLight) – zhasnutá světla nezatěžují Forward+
         return l;
     }
 
@@ -128,6 +129,15 @@ public static class VisUtil
         return tex;
     }
 
+    // Nastaví jas a vypne zhasnutá světla – každé zapnuté světlo stojí výkon (hlavně na Questu), i když svítí 0.
+    public static void SetLight(Light l, float intensity)
+    {
+        if (l == null) return;
+        l.intensity = intensity;
+        bool on = intensity > 0.003f;
+        if (l.enabled != on) l.enabled = on;
+    }
+
     public static Light Point(Transform parent, Vector3 pos, float range)
     {
         var go = new GameObject("Glow");
@@ -138,6 +148,7 @@ public static class VisUtil
         l.range = range;
         l.shadows = LightShadows.None;
         l.intensity = 0;
+        l.enabled = false;      // zapíná se až při svitu (SetLight) – zhasnutá světla nezatěžují Forward+
         return l;
     }
 

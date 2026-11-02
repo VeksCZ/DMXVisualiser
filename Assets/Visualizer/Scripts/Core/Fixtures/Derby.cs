@@ -110,9 +110,9 @@ public class Derby : MonoBehaviour
         if (dotsRgb != null)
         {
             dotsRgb.color = new Color(red, green, blue);
-            dotsRgb.intensity = Mathf.Max(red, Mathf.Max(green, blue)) > 0.001f ? dotIntensity * gate : 0f;
+            VisUtil.SetLight(dotsRgb, Mathf.Max(red, Mathf.Max(green, blue)) > 0.001f ? dotIntensity * gate : 0f);
             dotsWhite.color = Color.white;
-            dotsWhite.intensity = white * gate * dotIntensity;
+            VisUtil.SetLight(dotsWhite, white * gate * dotIntensity);
         }
     }
 }

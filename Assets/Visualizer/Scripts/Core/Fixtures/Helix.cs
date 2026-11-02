@@ -71,7 +71,7 @@ public class Helix : MonoBehaviour
                 VisUtil.SetColor(lenses[b, i], n, I * 3f);
             }
             spots[b].color = n;
-            spots[b].intensity = I * lightIntensity;
+            VisUtil.SetLight(spots[b], I * lightIntensity);
         }
     }
 }
