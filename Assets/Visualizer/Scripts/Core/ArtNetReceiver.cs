@@ -58,7 +58,7 @@ public class ArtNetReceiver : MonoBehaviour
         public volatile bool stop;     // socket se zavírá kvůli změně sítě – vlákno musí skončit
     }
 
-    public bool HasData => Time.time - lastPacketTime < 2f;
+    public bool HasData => Time.unscaledTime - lastPacketTime < 2f;      // unscaled: při zmrazení scény (timeScale 0) musí čas dál běžet
 
     int interfaceCount = -1;
     float startedAt;
@@ -124,14 +124,26 @@ public class ArtNetReceiver : MonoBehaviour
     float nextNetCheck;
 
     // Wi-Fi se připojí až po startu, změní se IP z DHCP, zapojí se kabel… → znovu se navážeme na aktuální adresy.
+    // Výčet rozhraní může na Windows trvat desítky ms (VPN, Hyper-V, WSL) → běží na vlákně z poolu, výsledek se zpracuje v dalším Update.
+    volatile List<IPAddress> scanResult;
+    bool scanning;
+
     void CheckNetwork()
     {
-        if (Time.unscaledTime < nextNetCheck) return;
+        var res = scanResult;
+        if (res != null) { scanResult = null; scanning = false; ApplyNetwork(res); return; }
+        if (scanning || Time.unscaledTime < nextNetCheck) return;
         nextNetCheck = Time.unscaledTime + 5f;
-        var ips = LocalIPv4();
+        scanning = true;
+        ThreadPool.QueueUserWorkItem(_ => { scanResult = LocalIPv4(); });
+    }
+
+    void ApplyNetwork(List<IPAddress> ips)
+    {
         var want = IpSet(ips);
         interfaceCount = ips.Count;
-        if (want.SetEquals(lastWant)) return;
+        // beze změny adres se nic nedělá – kromě případu, kdy se nepodařilo otevřít žádný socket (port držel jiný program): zkusit znovu
+        if (want.SetEquals(lastWant) && listeners.Count > 0) return;
         lastWant = want;
         Debug.Log("Art-Net: změna sítě, naslouchám znovu (" + string.Join(", ", want) + ")");
 
@@ -172,10 +184,11 @@ public class ArtNetReceiver : MonoBehaviour
     void OnDisable()
     {
         running = false;
-        foreach (var l in listeners) { try { l.udp.Close(); } catch { } }
+        foreach (var l in listeners) { l.stop = true; try { l.udp.Close(); } catch { } }
         listeners.Clear();
-        try { sacn?.Close(); } catch { }
-        sacn = null;
+        var oldSacn = sacn;
+        sacn = null;                                   // vlákno sACN pozná podle toho, že jeho socket už není aktuální
+        try { oldSacn?.Close(); } catch { }
         joined.Clear();
         joinIfaces.Clear();
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -227,7 +240,7 @@ public class ArtNetReceiver : MonoBehaviour
         if (gotPacket)
         {
             gotPacket = false;
-            lastPacketTime = Time.time;
+            lastPacketTime = Time.unscaledTime;
             lastSender = senderStr;
             lastProtocol = protoStr;
         }
@@ -246,15 +259,24 @@ public class ArtNetReceiver : MonoBehaviour
 
     // Universa použitá v patchi (od 0): ohlásí se v ArtPollReply a přihlásí se k nim sACN multicast.
     // Volat z hlavního vlákna, klidně často – nic se nedělá, když se seznam nezměnil.
-    public void SetUniverses(IEnumerable<int> universes)
+    public void SetUniverses(HashSet<int> universes)
     {
+        // bez alokací, když se seznam nezměnil (volá se každou sekundu)
+        var cur = advertised;
+        int count = 0;
+        bool same = true;
+        if (universes != null)
+            foreach (var u in universes)
+            {
+                if (u < 0 || u >= UniverseStore.MaxUniverses) continue;
+                count++;
+                if (same && Array.IndexOf(cur, u) < 0) same = false;
+            }
+        if (same && count == cur.Length) return;
         var list = new SortedSet<int>();
         if (universes != null) foreach (var u in universes) if (u >= 0 && u < UniverseStore.MaxUniverses) list.Add(u);
         var arr = new int[list.Count];
         list.CopyTo(arr);
-        bool same = arr.Length == advertised.Length;
-        for (int i = 0; same && i < arr.Length; i++) same = arr[i] == advertised[i];
-        if (same) return;
         advertised = arr;
         UpdateMulticast(list);
     }
@@ -327,11 +349,11 @@ public class ArtNetReceiver : MonoBehaviour
     {
         var udp = sacn;
         var ep = new IPEndPoint(IPAddress.Any, 0);
-        while (running && udp != null)
+        while (running && udp != null && ReferenceEquals(sacn, udp))
         {
             byte[] p;
             try { p = udp.Receive(ref ep); }
-            catch { if (!running) break; Thread.Sleep(1); continue; }
+            catch { if (!running || !ReferenceEquals(sacn, udp)) break; Thread.Sleep(1); continue; }
             if (!SacnProtocol.TryParse(p, p.Length, out var d, out _)) continue;
             if (d.terminated) { store.Release(d.universe); continue; }
             Accept(d, p, ep.Address, "sACN");

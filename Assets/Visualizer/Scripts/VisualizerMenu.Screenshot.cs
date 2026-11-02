@@ -27,7 +27,7 @@ public partial class VisualizerMenu
         bool wasVisible = uiVisible;
         uiVisible = false;                        // rozhraní se do snímku nedostane
         yield return null;
-        yield return new WaitForEndOfFrame();
+        yield return null;                        // aspoň jeden celý snímek bez rozhraní
         string path = null;
         try
         {
@@ -36,7 +36,10 @@ public partial class VisualizerMenu
             ScreenCapture.CaptureScreenshot(path);
         }
         catch (Exception e) { Debug.LogWarning("Screenshot failed: " + e.Message); path = null; }
+        // snímek se pořídí na konci tohoto snímku – rozhraní vrátit až po něm
+        yield return new WaitForEndOfFrame();
         yield return null;
+        yield return new WaitForEndOfFrame();
         uiVisible = wasVisible;
         Flash(path != null ? Loc.F("screenshotSaved", Path.GetFileName(path)) : Loc.T("screenshotFailed"));
         shooting = false;

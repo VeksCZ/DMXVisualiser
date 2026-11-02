@@ -11,6 +11,7 @@ public static class ErrorLog
     static readonly ErrorLogThrottle throttle = new ErrorLogThrottle();
     static readonly object gate = new object();
     static bool headerWritten;
+    static string header;       // sestaveno v Init() na hlavním vlákně – Unity API nejde volat z vlákna, které chybu zalogovalo
     static readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
 
     public static string Dir => path != null ? Path.GetDirectoryName(path) : null;
@@ -22,6 +23,7 @@ public static class ErrorLog
         try
         {
             path = Path.Combine(Path.GetDirectoryName(VisualizerSettings.FilePath), "errors.log");
+            header = "==== DMX Visualiser " + Application.version + "  " + SystemInfo.operatingSystem + "  " + SystemInfo.graphicsDeviceName + " ====";
             Application.logMessageReceivedThreaded += OnLog;
         }
         catch (Exception e) { Debug.LogWarning("ErrorLog init failed: " + e.Message); }
@@ -47,7 +49,7 @@ public static class ErrorLog
                 {
                     if (!headerWritten)
                     {
-                        w.WriteLine("==== DMX Visualiser " + Application.version + "  " + SystemInfo.operatingSystem + "  " + SystemInfo.graphicsDeviceName + " ====");
+                        w.WriteLine(header);
                         headerWritten = true;
                     }
                     w.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  [" + type + "]  " + message + (suppressed > 0 ? "   (+" + suppressed + "× opakováno)" : ""));

@@ -149,14 +149,20 @@ public class VisualizerSettings
     public void Save()
     {
         EmbedProfiles();
+        string path = FilePath, json = JsonUtility.ToJson(this, true);
         try
         {
             // Atomicky: zapsat vedle a vyměnit, předchozí verze zůstane jako .bak
-            string path = FilePath, tmp = path + ".tmp";
-            File.WriteAllText(tmp, JsonUtility.ToJson(this, true));
+            string tmp = path + ".tmp";
+            File.WriteAllText(tmp, json);
             if (File.Exists(path)) File.Replace(tmp, path, path + ".bak");
             else File.Move(tmp, path);
         }
-        catch (Exception e) { Debug.LogWarning("Settings save failed: " + e.Message); }
+        catch (Exception e)
+        {
+            // zamčený soubor / souborový systém bez Replace: aspoň přímý zápis jako dřív
+            try { File.WriteAllText(path, json); }
+            catch (Exception e2) { Debug.LogWarning("Settings save failed: " + e.Message + " / " + e2.Message); }
+        }
     }
 }

@@ -156,6 +156,12 @@ public class DmxPatch : MonoBehaviour
             }
             int i = baseCh + c.ch - 1;
             if (scale && i >= 0 && i < 512) fadeBuf[i] = (byte)(fadeBuf[i] * level);
+            else if (c.fn == "pixels")
+            {
+                // pixelový režim tuby: všechny barevné kanály pixelů
+                int n = Mathf.Max(1, c.count) * (string.IsNullOrEmpty(c.layout) ? 3 : c.layout.Length);
+                for (int k = 0; k < n && i + k < 512; k++) if (i + k >= 0) fadeBuf[i + k] = (byte)(fadeBuf[i + k] * level);
+            }
         }
         return fadeBuf;
     }
@@ -165,8 +171,6 @@ public class DmxPatch : MonoBehaviour
     int testIndex = -1;
     float testUntil;
     readonly byte[] testBuf = new byte[512];
-
-    public bool IsTesting(int index) => testIndex == index && Time.unscaledTime < testUntil;
 
     public void TestFixture(int index)
     {

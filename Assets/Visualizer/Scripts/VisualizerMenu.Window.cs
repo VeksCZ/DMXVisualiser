@@ -19,6 +19,7 @@ public partial class VisualizerMenu
             {
                 var pos = Screen.mainWindowPosition;
                 s.windowX = pos.x; s.windowY = pos.y; s.hasWindowPos = true;
+                s.windowWidth = Screen.width; s.windowHeight = Screen.height;
             }
         }
         catch (Exception e) { Debug.LogWarning("CaptureWindow: " + e.Message); }

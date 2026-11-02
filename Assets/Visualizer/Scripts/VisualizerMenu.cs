@@ -401,7 +401,7 @@ public partial class VisualizerMenu : MonoBehaviour
     // Fullscreen vždy v nativním rozlišení monitoru; ovládací panel zůstane otevřený.
     void GoFullscreen()
     {
-        if (!IsFullscreen) { s.windowWidth = Screen.width; s.windowHeight = Screen.height; CaptureWindow(); }
+        if (!IsFullscreen) { s.windowWidth = Screen.width; s.windowHeight = Screen.height; }
         var d = Display.main;
         int w = d.systemWidth > 0 ? d.systemWidth : Screen.currentResolution.width;
         int h = d.systemHeight > 0 ? d.systemHeight : Screen.currentResolution.height;
@@ -425,7 +425,8 @@ public partial class VisualizerMenu : MonoBehaviour
 
     void ToggleFullscreen()
     {
-        if (IsFullscreen) GoWindowed(); else GoFullscreen();
+        if (IsFullscreen) GoWindowed();
+        else { CaptureWindow(); GoFullscreen(); }     // monitor a pozici uložit, až když okno opouštíme (ne při startu – to by přepsalo uložený monitor)
         s.Save();
     }
 
