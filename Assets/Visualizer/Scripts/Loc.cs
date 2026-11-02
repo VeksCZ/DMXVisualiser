@@ -16,6 +16,9 @@ public static class Loc
         { "panelMenu", new[] { "Ovládací panel", "Control panel" } },
         { "fullscreen", new[] { "Celá obrazovka", "Fullscreen" } },
         { "exitFullscreen", new[] { "Ukončit celou obrazovku", "Exit fullscreen" } },
+        { "screenshot", new[] { "Screenshot", "Screenshot" } },
+        { "screenshotSaved", new[] { "Screenshot uložen: {0}", "Screenshot saved: {0}" } },
+        { "screenshotFailed", new[] { "Screenshot se nepodařilo uložit", "Could not save the screenshot" } },
         { "controlsMenu", new[] { "Ovládání…", "Controls…" } },
         { "updatesMenu", new[] { "Zkontrolovat aktualizace…", "Check for updates…" } },
         { "aboutMenu", new[] { "O aplikaci…", "About…" } },
@@ -199,8 +202,8 @@ public static class Loc
         { "controlsTitle", new[] { "Ovládání", "Controls" } },
         { "aboutTitle", new[] { "O aplikaci", "About" } },
         { "controlsText", new[] {
-            "Pravé tlačítko myši + pohyb myší – rozhlížení\nW A S D – pohyb,  Q / E – dolů / nahoru,  Shift – rychleji\n1 – 4 – pohledy kamery\nF11 – celá obrazovka\nH – skrýt / zobrazit rozhraní\nEsc – zavřít okna / ukončit celou obrazovku",
-            "Right mouse button + mouse – look around\nW A S D – move,  Q / E – down / up,  Shift – faster\n1 – 4 – camera views\nF11 – fullscreen\nH – hide / show interface\nEsc – close windows / exit fullscreen" } },
+            "Pravé tlačítko myši + pohyb myší – rozhlížení\nW A S D – pohyb,  Q / E – dolů / nahoru,  Shift – rychleji\n1 – 4 – pohledy kamery\nF11 – celá obrazovka\nF12 – screenshot (složka Screenshots)\nH – skrýt / zobrazit rozhraní\nEsc – zavřít okna / ukončit celou obrazovku",
+            "Right mouse button + mouse – look around\nW A S D – move,  Q / E – down / up,  Shift – faster\n1 – 4 – camera views\nF11 – fullscreen\nF12 – screenshot (Screenshots folder)\nH – hide / show interface\nEsc – close windows / exit fullscreen" } },
         { "aboutText", new[] {
             "DMX Visualiser {0}\n\nVizualizace světel ze SoundSwitche přes Art-Net.\nSvětla se popisují profily (JSON) – vlastní přidáš do složky Profiles.\n\nVeksCZ  •  github.com/VeksCZ/XR_DMX_Visualiser",
             "DMX Visualiser {0}\n\nLighting visualisation from SoundSwitch over Art-Net.\nFixtures are described by profiles (JSON) – add your own to the Profiles folder.\n\nVeksCZ  •  github.com/VeksCZ/XR_DMX_Visualiser" } },

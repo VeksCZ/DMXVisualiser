@@ -129,6 +129,7 @@ public partial class VisualizerMenu : MonoBehaviour
         if (kb == null) return;
         if (kb.hKey.wasPressedThisFrame) uiVisible = !uiVisible;
         if (kb.f11Key.wasPressedThisFrame) ToggleFullscreen();
+        if (kb.f12Key.wasPressedThisFrame) TakeScreenshot();
         if (kb.escapeKey.wasPressedThisFrame) EscapePressed();
         if (kb.digit1Key.wasPressedThisFrame) SetCamera(0);
         if (kb.digit2Key.wasPressedThisFrame) SetCamera(1);
@@ -137,6 +138,7 @@ public partial class VisualizerMenu : MonoBehaviour
 #else
         if (Input.GetKeyDown(KeyCode.H)) uiVisible = !uiVisible;
         if (Input.GetKeyDown(KeyCode.F11)) ToggleFullscreen();
+        if (Input.GetKeyDown(KeyCode.F12)) TakeScreenshot();
         if (Input.GetKeyDown(KeyCode.Escape)) EscapePressed();
         for (int i = 0; i < 4; i++) if (Input.GetKeyDown(KeyCode.Alpha1 + i)) SetCamera(i);
 #endif
@@ -465,6 +467,7 @@ public partial class VisualizerMenu : MonoBehaviour
         {
             case 0:
                 l.Add(It(Loc.T("settingsMenu"), OpenSettings));
+                if (!VRRig.IsVR) l.Add(It(Loc.T("screenshot"), TakeScreenshot, "F12"));
                 l.Add(Sep());
                 l.Add(It(Loc.T("quit"), Quit, "Alt+F4"));
                 break;
