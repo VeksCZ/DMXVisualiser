@@ -341,6 +341,18 @@ public class UniverseStoreTests
     }
 
     [Fact]
+    public void IsActiveReflectsRecentData()
+    {
+        var s = new UniverseStore();
+        Assert.False(s.IsActive(0, 0));
+        s.Submit(0, Fill(1), 0, 512, 0, 100, 1000);
+        Assert.True(s.IsActive(0, 1500));
+        Assert.False(s.IsActive(0, 1000 + UniverseStore.SourceTimeoutMs + 1));
+        Assert.False(s.IsActive(-1, 0));
+        Assert.False(s.IsActive(1, 1500));
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task ThreadSafetyStress()
     {
         var s = new UniverseStore();

@@ -14,6 +14,7 @@
 - **Windows aplikace** – virtuální sál s DJ stolem, několik pohledů kamery, demo režim bez SoundSwitche, mlha z hazeru.
 - **Seznam světel** – adresy, režimy, zobrazení/skrytí jednotlivých světel, detail kanálů.
 - **Kalibrace pohyblivých hlav** – pan/tilt offset, invertování, jedním klikem „současná pozice = střed parketu“ (SS Stage Center).
+- **Test světla a kontrola patche** – tlačítko „Test světla“ zablikne vybraným světlem podle uloženého patche (ověří adresu bez SoundSwitche); upozornění na překryv adres a na universe, kam nic nechodí.
 - **Předvolby sestav** – „Moje“ a „Kolega“ jdou načíst jedním tlačítkem.
 - **Profily světel v JSON** – nové světlo přidáš souborem do složky `Profiles`, bez nového buildu. Popis formátu: [Docs/PROFILES.md](Docs/PROFILES.md).
 - **Sestava jako soubor** – export / import celé sestavy (světla, adresy, kalibrace, umístění, vlastní profily) pro kolegu nebo jiný počítač.
@@ -65,6 +66,7 @@ A 3D DMX lighting visualiser for **SoundSwitch**. It receives Art-Net straight f
 - **Windows app** – virtual hall with a DJ table, several camera views, demo mode without SoundSwitch, haze from the hazer.
 - **Fixture list** – addresses, modes, show/hide per fixture, channel detail.
 - **Moving head calibration** – pan/tilt offset, invert, one click "current position = dance floor centre" (SS Stage Center).
+- **Fixture test and patch check** – the "Test fixture" button blinks the selected fixture using the applied patch (verifies the address without SoundSwitch); warnings for overlapping addresses and universes with no incoming data.
 - **Rig presets** – "Mine" and "Colleague" load with a single button.
 - **JSON fixture profiles** – add a new fixture by dropping a file into the `Profiles` folder, no rebuild needed. Format: [Docs/PROFILES.md](Docs/PROFILES.md).
 - **Rig as a file** – export / import the whole rig (fixtures, addresses, calibration, placement, custom profiles) for a colleague or another PC.

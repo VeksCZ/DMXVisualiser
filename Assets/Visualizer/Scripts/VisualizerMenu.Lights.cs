@@ -92,6 +92,18 @@ public partial class VisualizerMenu
         GUILayout.EndHorizontal();
     }
 
+    // Zablikání vybraného světla podle uloženého patche (adresa, režim) – ověří zapojení bez SoundSwitche.
+    void TestFixture(int i)
+    {
+        if (patch == null || scene == null || i < 0 || i >= scene.instances.Count || scene.instances.Count != stFixtures.Count || rigDirty)
+        { Flash(Loc.T("testApplyFirst")); return; }
+        var e = scene.instances[i].entry;
+        if (e == null || !int.TryParse(eUni[i], out int u) || !int.TryParse(eAddr[i], out int a) || e.universe != u || e.address != a || e.mode != eMode[i])
+        { Flash(Loc.T("testApplyFirst")); return; }
+        if (patch.forceDemo) { Flash(Loc.T("testDemo")); return; }
+        patch.TestFixture(i);
+    }
+
     void DrawFixtureDetail(int i)
     {
         var f = stFixtures[i];
@@ -165,6 +177,9 @@ public partial class VisualizerMenu
                 GUILayout.Label(Loc.F("channelsInfo", ch, a, a + ch - 1), sDim);
             string ov = Overlap(i);
             if (ov != null) GUILayout.Label(Loc.F("overlap", ov), sWarn);
+            if (!p.IsProp && artnet != null && artnet.HasData && int.TryParse(eUni[i], out int du) && !artnet.UniverseActive(du - 1))
+                GUILayout.Label(Loc.F("universeSilent", du), sWarn);
+            if (!p.IsProp && GUILayout.Button(Loc.T("testFixture"), sButton, GUILayout.ExpandWidth(false))) TestFixture(i);
         }
 
         if (!p.IsHazer) DrawPlacement(i, lw);

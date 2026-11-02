@@ -174,6 +174,7 @@ public class ArtNetReceiver : MonoBehaviour
 
     // Kolik universů právě dostává data.
     public int ActiveUniverses => store.ActiveCount(NowMs);
+    public bool UniverseActive(int universe) => store.IsActive(universe, NowMs);
 
     // Universa použitá v patchi (od 0): ohlásí se v ArtPollReply a přihlásí se k nim sACN multicast.
     // Volat z hlavního vlákna, klidně často – nic se nedělá, když se seznam nezměnil.

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -84,18 +85,28 @@ public class DmxPatch : MonoBehaviour
         if (artnet == null || scene == null) return;
         SyncUniverses();
         bool live = artnet.HasData && !forceDemo;
+        bool testing = testIndex >= 0 && Time.unscaledTime < testUntil && testIndex < scene.instances.Count;
+        if (!testing) testIndex = -1;
         // demo jen na vyžádání; bez Art-Netu a bez dema je na světlech tma a nic se nehýbe
         if (demo != null) demo.enabled = forceDemo;
         if (!live)
         {
-            if (!forceDemo) foreach (var fi in scene.instances) DmxEngine.Blackout(fi);
+            if (!forceDemo)
+                for (int i = 0; i < scene.instances.Count; i++)
+                {
+                    var fi = scene.instances[i];
+                    if (testing && i == testIndex) ApplyTest(fi, testUntil - Time.unscaledTime);
+                    else DmxEngine.Blackout(fi);
+                }
             return;
         }
 
         float hazeOut = 0f;
-        foreach (var fi in scene.instances)
+        for (int i = 0; i < scene.instances.Count; i++)
         {
+            var fi = scene.instances[i];
             if (fi.profile == null || fi.entry == null || fi.profile.IsProp) continue;
+            if (testing && i == testIndex) { ApplyTest(fi, testUntil - Time.unscaledTime); continue; }
             if (fi.entry.hidden) { DmxEngine.Blackout(fi); continue; }
             var d = Uni(fi.entry.universe - 1);
             if (d == null) continue;
@@ -108,6 +119,50 @@ public class DmxPatch : MonoBehaviour
         hazeDensity -= hazeDensity * hazeDecay * Time.deltaTime;
         hazeDensity = Mathf.Clamp01(hazeDensity);
         scene.haze = Mathf.Clamp(0.05f + hazeDensity * hazeToBeam, 0f, 3f);
+    }
+
+    // ---- Test světla: vybrané světlo ~4 s bliká bíle (1 Hz), hlavy míří na střed. Ověří adresu a režim bez SoundSwitche. ----
+    const float TestSeconds = 4f;
+    int testIndex = -1;
+    float testUntil;
+    readonly byte[] testBuf = new byte[512];
+
+    public bool IsTesting(int index) => testIndex == index && Time.unscaledTime < testUntil;
+
+    public void TestFixture(int index)
+    {
+        if (scene == null || index < 0 || index >= scene.instances.Count) return;
+        testIndex = index;
+        testUntil = Time.unscaledTime + TestSeconds;
+    }
+
+    void ApplyTest(FixtureInstance fi, float remaining)
+    {
+        var p = fi.profile;
+        var m = p != null ? p.Mode(fi.entry.mode) : null;
+        if (m == null || m.controls == null) return;
+        Array.Clear(testBuf, 0, 512);
+        bool on = Mathf.Repeat(TestSeconds - remaining, 1f) < 0.5f;
+        int baseCh = fi.entry.address - 1;
+        foreach (var c in m.controls)
+        {
+            if (c == null || c.ch < 1) continue;
+            int i = baseCh + c.ch - 1;
+            if (i < 0 || i >= 512) continue;
+            switch (c.fn)
+            {
+                case "dimmer": case "red": case "green": case "blue": case "white": case "haze":
+                    testBuf[i] = on ? (byte)255 : (byte)0; break;
+                case "shutter":
+                {
+                    var open = c.ranges != null ? Array.Find(c.ranges, r => r != null && r.type == "open") : null;
+                    testBuf[i] = open != null ? (byte)((open.from + open.to) / 2) : (byte)255;
+                    break;
+                }
+                case "pan": case "tilt": testBuf[i] = 128; break;
+            }
+        }
+        DmxEngine.Apply(fi, testBuf);
     }
 
     // Přijímač se jednou za sekundu dozví, která universa patch používá (ArtPollReply, sACN multicast).

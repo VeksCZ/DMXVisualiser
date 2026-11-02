@@ -262,6 +262,13 @@ public sealed class UniverseStore
         }
     }
 
+    // Přišla na universe data v posledních timeoutMs?
+    public bool IsActive(int universe, long nowMs, int timeoutMs = SourceTimeoutMs)
+    {
+        if (universe < 0 || universe >= MaxUniverses) return false;
+        lock (gate) return data[universe] != null && nowMs - lastMs[universe] <= timeoutMs;
+    }
+
     // Kolik universů dostalo data v posledních timeoutMs (pro stavový řádek).
     public int ActiveCount(long nowMs, int timeoutMs = SourceTimeoutMs)
     {
