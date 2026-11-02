@@ -55,6 +55,7 @@ public class ArtNetReceiver : MonoBehaviour
         public UdpClient udp;
         public IPAddress ip;
         public Thread thread;
+        public volatile bool stop;     // socket se zavírá kvůli změně sítě – vlákno musí skončit
     }
 
     public bool HasData => Time.time - lastPacketTime < 2f;
@@ -63,24 +64,71 @@ public class ArtNetReceiver : MonoBehaviour
     {
         running = true;
 
-        var bound = new List<string>();
 #if UNITY_ANDROID && !UNITY_EDITOR
+        var bound = new List<string>();
         // Quest (Linux): socket navázaný na konkrétní IP nedostává broadcast (ArtPoll),
         // proto 0.0.0.0 + multicast lock, jinak Wi-Fi broadcasty zahazuje.
         AcquireMulticastLock();
         if (TryListen(IPAddress.Any)) bound.Add("0.0.0.0");
         joinIfaces.Add(IPAddress.Any);                  // multicast přes výchozí rozhraní
+        SetBindInfo(bound);
 #else
-        foreach (var ip in LocalIPv4())
-            if (TryListen(ip)) bound.Add(ip.ToString());
-        if (bound.Count == 0 && TryListen(IPAddress.Any)) bound.Add("0.0.0.0");
-        joinIfaces.AddRange(LocalIPv4());
+        var ips = LocalIPv4();
+        lastWant = IpSet(ips);
+        joinIfaces.AddRange(ips);
+        SetBindInfo(BindLocal(ips));
 #endif
-
-        bindInfo = bound.Count > 0 ? string.Join(", ", bound) + " : " + port : "port " + port + " nejde otevřít";
         if (sacnEnabled && StartSacn()) bindInfo += "  |  sACN : " + SacnProtocol.Port;
         Debug.Log("Art-Net: poslouchám na " + bindInfo);
     }
+
+    void SetBindInfo(List<string> bound) =>
+        bindInfo = bound.Count > 0 ? string.Join(", ", bound) + " : " + port : "port " + port + " nejde otevřít";
+
+#if !(UNITY_ANDROID && !UNITY_EDITOR)
+    // Každé rozhraní zvlášť (konkrétní adresa má ve Windows přednost před SoundSwitchem na 0.0.0.0).
+    List<string> BindLocal(List<IPAddress> ips)
+    {
+        var bound = new List<string>();
+        foreach (var ip in ips)
+            if (TryListen(ip)) bound.Add(ip.ToString());
+        if (bound.Count == 0 && TryListen(IPAddress.Any)) bound.Add("0.0.0.0");
+        return bound;
+    }
+
+    static HashSet<string> IpSet(List<IPAddress> ips)
+    {
+        var set = new HashSet<string>();
+        foreach (var ip in ips) set.Add(ip.ToString());
+        return set;
+    }
+
+    HashSet<string> lastWant = new HashSet<string>();
+    float nextNetCheck;
+
+    // Wi-Fi se připojí až po startu, změní se IP z DHCP, zapojí se kabel… → znovu se navážeme na aktuální adresy.
+    void CheckNetwork()
+    {
+        if (Time.unscaledTime < nextNetCheck) return;
+        nextNetCheck = Time.unscaledTime + 5f;
+        var ips = LocalIPv4();
+        var want = IpSet(ips);
+        if (want.SetEquals(lastWant)) return;
+        lastWant = want;
+        Debug.Log("Art-Net: změna sítě, naslouchám znovu (" + string.Join(", ", want) + ")");
+
+        foreach (var l in listeners) { l.stop = true; try { l.udp.Close(); } catch { } }
+        listeners.Clear();
+        var s = sacn;
+        if (s != null) foreach (var n in joined) Membership(s, n, false);      // členství na zmizelých rozhraních
+        joined.Clear();
+        joinIfaces.Clear();
+        joinIfaces.AddRange(ips);
+
+        SetBindInfo(BindLocal(ips));
+        if (s != null) { UpdateMulticast(new SortedSet<int>(advertised)); bindInfo += "  |  sACN : " + SacnProtocol.Port; }
+    }
+#endif
 
     bool TryListen(IPAddress ip)
     {
@@ -155,6 +203,8 @@ public class ArtNetReceiver : MonoBehaviour
     {
 #if UNITY_ANDROID && !UNITY_EDITOR
         Announce();
+#else
+        CheckNetwork();
 #endif
         if (gotPacket)
         {
@@ -194,11 +244,11 @@ public class ArtNetReceiver : MonoBehaviour
     void Loop(Listener l)
     {
         var ep = new IPEndPoint(IPAddress.Any, 0);
-        while (running)
+        while (running && !l.stop)
         {
             byte[] p;
             try { p = l.udp.Receive(ref ep); }
-            catch { if (!running) break; Thread.Sleep(1); continue; }
+            catch { if (!running || l.stop) break; Thread.Sleep(1); continue; }
 
             int op = ArtNetProtocol.OpCode(p, p.Length);
             if (op == ArtNetProtocol.OpDmx)
