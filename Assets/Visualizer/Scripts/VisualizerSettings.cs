@@ -15,6 +15,10 @@ public class VisualizerSettings
     public bool fullscreen = false;
     public int windowWidth = 1600;
     public int windowHeight = 900;
+    public float dataHold = 3f;           // s: po výpadku dat světla drží poslední stav, pak se 2 s plynule ztlumí (0 = hned tma)
+    public bool checkUpdatesOnStart = true;
+    public float hazeDensity = -1f;       // haze z minulého spuštění (-1 = nenastaveno)
+    public float sceneHaze = -1f;
     public bool hasWindowPos = false;     // poslední pozice okna (vůči monitoru displayName)
     public int windowX, windowY;
     public string displayName = "";

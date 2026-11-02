@@ -32,7 +32,7 @@ public partial class VisualizerMenu : MonoBehaviour
 
     // Dialog Nastavení – rozpracované hodnoty, potvrdí se OK / Použít
     int settingsTab;
-    bool stEn, stStatus;
+    bool stEn, stStatus, stUpdates;
     List<FixtureEntry> stFixtures;
     readonly List<string> eName = new List<string>();
     readonly List<string> eUni = new List<string>();
@@ -105,6 +105,9 @@ public partial class VisualizerMenu : MonoBehaviour
         };
 
         ApplyToPatch();
+        if (patch != null && s.hazeDensity >= 0f) patch.hazeDensity = Mathf.Clamp01(s.hazeDensity);
+        if (scene != null && s.sceneHaze >= 0f) scene.haze = Mathf.Clamp(s.sceneHaze, 0f, 3f);
+        if (s.checkUpdatesOnStart && updater != null) updater.StartupCheck();
         winOpen[WinPanel] = s.panelOpen;
         if (VRRig.IsVR) { uiVisible = false; return; }   // v brýlích se 2D menu nekreslí (VR menu přijde zvlášť)
         SetCamera(s.cameraPreset);
@@ -132,6 +135,7 @@ public partial class VisualizerMenu : MonoBehaviour
         if (kb.f11Key.wasPressedThisFrame) ToggleFullscreen();
         if (kb.f12Key.wasPressedThisFrame) TakeScreenshot();
         if (kb.f5Key.wasPressedThisFrame) ToggleDemo();
+        if (kb.f10Key.wasPressedThisFrame) ToggleFreeze();
         if (kb.f6Key.wasPressedThisFrame) AddHaze(-0.1f);
         if (kb.f7Key.wasPressedThisFrame) AddHaze(0.1f);
         if (kb.f8Key.wasPressedThisFrame) AddRoomLight(-0.1f);
@@ -146,6 +150,7 @@ public partial class VisualizerMenu : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.F11)) ToggleFullscreen();
         if (Input.GetKeyDown(KeyCode.F12)) TakeScreenshot();
         if (Input.GetKeyDown(KeyCode.F5)) ToggleDemo();
+        if (Input.GetKeyDown(KeyCode.F10)) ToggleFreeze();
         if (Input.GetKeyDown(KeyCode.F6)) AddHaze(-0.1f);
         if (Input.GetKeyDown(KeyCode.F7)) AddHaze(0.1f);
         if (Input.GetKeyDown(KeyCode.F8)) AddRoomLight(-0.1f);
@@ -173,6 +178,7 @@ public partial class VisualizerMenu : MonoBehaviour
         patch.fixtures = CloneList(s.fixtures);
         patch.hazeBuildRate = s.hazeBuildRate;
         patch.hazeDecay = s.hazeDecay;
+        patch.holdSeconds = s.dataHold;
         if (scene != null) scene.Rebuild(patch.fixtures);
     }
 
@@ -220,6 +226,7 @@ public partial class VisualizerMenu : MonoBehaviour
     {
         stEn = Loc.En;
         stStatus = s.showStatusBar;
+        stUpdates = s.checkUpdatesOnStart;
         stFixtures = CloneList(s.fixtures);
         LoadEditor();
         settingsError = null;
@@ -342,6 +349,7 @@ public partial class VisualizerMenu : MonoBehaviour
         }
         s.fixtures = CloneList(stFixtures);
         s.showStatusBar = stStatus;
+        s.checkUpdatesOnStart = stUpdates;
         Loc.En = stEn;
         s.language = stEn ? "en" : "cs";
         ApplyToPatch();
@@ -421,6 +429,15 @@ public partial class VisualizerMenu : MonoBehaviour
         s.Save();
     }
 
+    // Zmrazit scénu: data se nepřebírají a čas stojí (blikání, rotace, pohyb hlav) – kamera se hýbe dál. Hodí se na screenshot.
+    void ToggleFreeze()
+    {
+        if (patch == null || VRRig.IsVR) return;
+        patch.frozen = !patch.frozen;
+        Time.timeScale = patch.frozen ? 0f : 1f;
+        Flash(Loc.T(patch.frozen ? "frozenOn" : "frozenOff"));
+    }
+
     void TogglePanel()
     {
         if (winOpen[WinPanel] && s.panelMinimized) s.panelMinimized = false;   // sbalený → rozbalit
@@ -444,8 +461,16 @@ public partial class VisualizerMenu : MonoBehaviour
 
     void Flash(string m) { msg = m; msgTime = Time.unscaledTime; }
 
+    void CaptureHaze()
+    {
+        if (s == null) return;
+        if (patch != null) s.hazeDensity = patch.hazeDensity;
+        if (scene != null) s.sceneHaze = scene.haze;
+    }
+
     void Quit()
     {
+        CaptureHaze();
         CaptureWindow();
         s.Save();
 #if UNITY_EDITOR
@@ -457,7 +482,7 @@ public partial class VisualizerMenu : MonoBehaviour
 
     void OnApplicationQuit()
     {
-        if (s != null) { CaptureWindow(); s.Save(); }
+        if (s != null) { CaptureHaze(); CaptureWindow(); s.Save(); }
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         // Pojistka: nastavení je uložené – kdyby se ukončování Unity zaseklo (vlákna, sokety, ovladač GPU),
         // proces se po 3 s ukončí sám, aby Windows nehlásily „program neodpovídá“.
@@ -493,6 +518,7 @@ public partial class VisualizerMenu : MonoBehaviour
             case 1:
                 l.Add(It(Loc.T("panelMenu"), TogglePanel, null, winOpen[WinPanel]));
                 l.Add(It(Loc.T("fullscreen"), ToggleFullscreen, "F11", IsFullscreen));
+                l.Add(It(Loc.T("freeze"), ToggleFreeze, "F10", patch != null && patch.frozen));
                 break;
             case 2:
                 l.Add(It(Loc.T("controlsMenu"), () => OpenWindow(WinControls)));
@@ -702,6 +728,7 @@ public partial class VisualizerMenu : MonoBehaviour
 
         string src = has ? Loc.T("source") + ": " + artnet.lastProtocol + " " + artnet.lastSender + "  •  " + Mathf.RoundToInt(pps) + " pkt/s"
                          : Loc.T("source") + ": " + Loc.T("noData");
+        if (patch != null && patch.frozen) state = "<color=#6cc4ff>❄ " + Loc.T("frozen") + "</color>";
         string text = state
             + "    " + src
             + "    |    " + Loc.T("listen") + ": " + (artnet != null ? artnet.bindInfo : "-")
@@ -813,6 +840,8 @@ public partial class VisualizerMenu : MonoBehaviour
         GUILayout.Label(st, rich);
         string diag = DiagnosisText();
         if (diag != null) GUILayout.Label(diag, sWarn);
+        if (updater != null && updater.state == Updater.State.Available)
+            if (GUILayout.Button(Loc.F("updateAvailable", updater.latestVersion), sButton)) OpenWindow(WinUpdates);
         GUILayout.Space(8 * k);
 
         GUILayout.Label(Loc.T("camera") + "  (1–4)", sHead);
@@ -881,6 +910,7 @@ public partial class VisualizerMenu : MonoBehaviour
             GUILayout.EndHorizontal();
             GUILayout.Space(10 * k);
             stStatus = GUILayout.Toggle(stStatus, " " + Loc.T("showStatusBar"), sToggle);
+            stUpdates = GUILayout.Toggle(stUpdates, " " + Loc.T("checkUpdatesOnStart"), sToggle);
         }
         else if (settingsTab == 1)
         {
@@ -904,6 +934,11 @@ public partial class VisualizerMenu : MonoBehaviour
                 if (diag != null) GUILayout.Label(diag, sWarn);
                 if (artnet.droppedPackets > 0) GUILayout.Label(Loc.F("droppedInfo", artnet.droppedPackets), sWarn);
             }
+            GUILayout.Space(8 * k);
+            GUILayout.Label(Loc.F("dataHold", Mathf.RoundToInt(s.dataHold)), sHead);
+            s.dataHold = Mathf.Round(GUILayout.HorizontalSlider(s.dataHold, 0f, 30f));
+            if (patch != null) patch.holdSeconds = s.dataHold;
+            GUILayout.Label(Loc.T("dataHoldHint"), sDim);
             GUILayout.Space(8 * k);
             GUILayout.Label(Loc.T("artnetHint"), sDim);
         }

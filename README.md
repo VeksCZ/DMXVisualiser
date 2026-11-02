@@ -15,6 +15,7 @@
 - **Seznam světel** – adresy, režimy, zobrazení/skrytí jednotlivých světel, detail kanálů.
 - **Kalibrace pohyblivých hlav** – pan/tilt offset, invertování, jedním klikem „současná pozice = střed parketu“ (SS Stage Center).
 - **Test světla a kontrola patche** – tlačítko „Test světla“ zablikne vybraným světlem podle uloženého patche (ověří adresu bez SoundSwitche); upozornění na překryv adres a na universe, kam nic nechodí.
+- **Zmrazení scény (F10), hold při výpadku dat** – zastaví čas i vstup dat pro screenshot; při krátkém výpadku Wi-Fi světla drží poslední stav a plynule zhasnou (nastavitelné). Klávesy F5–F9 pro demo, haze a světlo v sále.
 - **Předvolby sestav** – „Moje“ a „Kolega“ jdou načíst jedním tlačítkem.
 - **Profily světel v JSON** – nové světlo přidáš souborem do složky `Profiles`, bez nového buildu. Popis formátu: [Docs/PROFILES.md](Docs/PROFILES.md).
 - **Sestava jako soubor** – export / import celé sestavy (světla, adresy, kalibrace, umístění, vlastní profily) pro kolegu nebo jiný počítač.
@@ -67,6 +68,7 @@ A 3D DMX lighting visualiser for **SoundSwitch**. It receives Art-Net straight f
 - **Fixture list** – addresses, modes, show/hide per fixture, channel detail.
 - **Moving head calibration** – pan/tilt offset, invert, one click "current position = dance floor centre" (SS Stage Center).
 - **Fixture test and patch check** – the "Test fixture" button blinks the selected fixture using the applied patch (verifies the address without SoundSwitch); warnings for overlapping addresses and universes with no incoming data.
+- **Freeze scene (F10), hold on data loss** – stops time and data input for screenshots; on a short Wi-Fi drop the lights hold their last look and fade out smoothly (configurable). F5–F9 for demo, haze and room light.
 - **Rig presets** – "Mine" and "Colleague" load with a single button.
 - **JSON fixture profiles** – add a new fixture by dropping a file into the `Profiles` folder, no rebuild needed. Format: [Docs/PROFILES.md](Docs/PROFILES.md).
 - **Rig as a file** – export / import the whole rig (fixtures, addresses, calibration, placement, custom profiles) for a colleague or another PC.

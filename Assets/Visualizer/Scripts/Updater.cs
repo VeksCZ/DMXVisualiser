@@ -28,6 +28,20 @@ public class Updater : MonoBehaviour
     [Serializable] class GhAsset { public string name; public string browser_download_url; public long size; }
     [Serializable] class GhRelease { public string tag_name; public string html_url; public GhAsset[] assets; }
 
+    // Při startu na pozadí zjistí, jestli je novější verze (nic nestahuje). Offline se tiše přeskočí.
+    public void StartupCheck()
+    {
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        StartCoroutine(StartupRoutine());
+#endif
+    }
+
+    IEnumerator StartupRoutine()
+    {
+        yield return new WaitForSecondsRealtime(10f);
+        if (state == State.Idle) Check();
+    }
+
     public void Check()
     {
         if (state == State.Checking || state == State.Downloading || state == State.Installing) return;

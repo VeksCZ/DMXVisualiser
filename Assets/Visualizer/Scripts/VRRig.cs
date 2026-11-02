@@ -116,7 +116,7 @@ public class VRRig : MonoBehaviour
         {
             Vector3 f = head.forward; f.y = 0; f.Normalize();
             Vector3 r = head.right; r.y = 0; r.Normalize();
-            transform.position += (f * m.y + r * m.x) * moveSpeed * Time.deltaTime;
+            transform.position += (f * m.y + r * m.x) * moveSpeed * Time.unscaledDeltaTime;
         }
         float t = turn.ReadValue<Vector2>().x;
         if (turnReady && Mathf.Abs(t) > 0.7f)

@@ -57,6 +57,13 @@ public class DmxPatch : MonoBehaviour
     public DemoDriver demo;
     [Tooltip("Ignorovat Art-Net a pouštět demo")]
     public bool forceDemo;
+    [Tooltip("Zmrazit scénu: data se nepřebírají (F10)")]
+    public bool frozen;
+    [Tooltip("Po výpadku dat držet poslední stav tolik sekund, pak 2 s ztlumit (0 = hned tma)")]
+    public float holdSeconds = 3f;
+    const float FadeSeconds = 2f;
+    float lastLive = -999f;
+    readonly byte[] fadeBuf = new byte[512];
 
     [HideInInspector] public List<FixtureEntry> fixtures = new List<FixtureEntry>();
 
@@ -84,12 +91,18 @@ public class DmxPatch : MonoBehaviour
     {
         if (artnet == null || scene == null) return;
         SyncUniverses();
+        if (frozen) return;
         bool live = artnet.HasData && !forceDemo;
+        if (live) lastLive = Time.unscaledTime;
+        float quiet = Time.unscaledTime - lastLive;
+        // krátký výpadek dat (Wi-Fi, přepnutí songu): světla chvíli drží poslední stav a pak se plynule ztlumí
+        bool holding = !live && !forceDemo && holdSeconds > 0f && quiet < holdSeconds + FadeSeconds;
+        float level = holding && quiet > holdSeconds ? Mathf.Clamp01(1f - (quiet - holdSeconds) / FadeSeconds) : 1f;
         bool testing = testIndex >= 0 && Time.unscaledTime < testUntil && testIndex < scene.instances.Count;
         if (!testing) testIndex = -1;
         // demo jen na vyžádání; bez Art-Netu a bez dema je na světlech tma a nic se nehýbe
         if (demo != null) demo.enabled = forceDemo;
-        if (!live)
+        if (!live && !holding)
         {
             if (!forceDemo)
                 for (int i = 0; i < scene.instances.Count; i++)
@@ -110,6 +123,7 @@ public class DmxPatch : MonoBehaviour
             if (fi.entry.hidden) { DmxEngine.Blackout(fi); continue; }
             var d = Uni(fi.entry.universe - 1);
             if (d == null) continue;
+            if (level < 1f) d = Faded(fi, d, level);
             DmxEngine.Apply(fi, d);
             hazeOut = Mathf.Max(hazeOut, fi.hazeOut);
         }
@@ -119,6 +133,31 @@ public class DmxPatch : MonoBehaviour
         hazeDensity -= hazeDensity * hazeDecay * Time.deltaTime;
         hazeDensity = Mathf.Clamp01(hazeDensity);
         scene.haze = Mathf.Clamp(0.05f + hazeDensity * hazeToBeam, 0f, 3f);
+    }
+
+    // Kopie dat s ztlumeným jasem: u světel s dimmerem se ztlumí dimmer, jinak barevné kanály.
+    byte[] Faded(FixtureInstance fi, byte[] src, float level)
+    {
+        var m = fi.profile != null ? fi.profile.Mode(fi.entry.mode) : null;
+        if (m == null || m.controls == null) return src;
+        Buffer.BlockCopy(src, 0, fadeBuf, 0, 512);
+        bool hasDimmer = false;
+        foreach (var c in m.controls) if (c != null && c.fn == "dimmer") { hasDimmer = true; break; }
+        int baseCh = fi.entry.address - 1;
+        foreach (var c in m.controls)
+        {
+            if (c == null || c.ch < 1) continue;
+            bool scale;
+            switch (c.fn)
+            {
+                case "dimmer": scale = true; break;
+                case "red": case "green": case "blue": case "white": case "amber": case "uv": scale = !hasDimmer; break;
+                default: scale = false; break;
+            }
+            int i = baseCh + c.ch - 1;
+            if (scale && i >= 0 && i < 512) fadeBuf[i] = (byte)(fadeBuf[i] * level);
+        }
+        return fadeBuf;
     }
 
     // ---- Test světla: vybrané světlo ~4 s bliká bíle (1 Hz), hlavy míří na střed. Ověří adresu a režim bez SoundSwitche. ----

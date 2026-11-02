@@ -182,6 +182,14 @@ public static class Loc
         { "autoQuality", new[] { "Kvalita ↓{0}", "Quality ↓{0}" } },
         { "updateCorrupt", new[] { "Stažený soubor je poškozený nebo neúplný – aktualizace se neprovedla, aplikace běží dál. Zkus to znovu.", "The downloaded file is corrupt or incomplete – nothing was changed, the app keeps running. Try again." } },
         { "updateFailed", new[] { "Poslední aktualizace se nepovedla, běží původní verze.", "The last update failed, the previous version is running." } },
+        { "dataHold", new[] { "Při výpadku dat držet poslední stav: {0} s", "Hold the last look when data drops: {0} s" } },
+        { "dataHoldHint", new[] { "Po uplynutí se světla ještě 2 s plynule ztlumí. 0 = zhasnout hned. (K tomu se přičtou 2 s, po kterých se data považují za ztracená.)", "After that the lights fade out over 2 s. 0 = go dark immediately. (Comes on top of the 2 s after which data counts as lost.)" } },
+        { "checkUpdatesOnStart", new[] { "Při startu zkontrolovat nové verze", "Check for new versions at startup" } },
+        { "updateAvailable", new[] { "⬆ Nová verze {0} – klikni", "⬆ New version {0} – click" } },
+        { "freeze", new[] { "Zmrazit scénu", "Freeze scene" } },
+        { "frozen", new[] { "ZMRAZENO", "FROZEN" } },
+        { "frozenOn", new[] { "Scéna zmrazena (F10 pro pokračování)", "Scene frozen (F10 to resume)" } },
+        { "frozenOff", new[] { "Scéna pokračuje", "Scene resumed" } },
         { "droppedInfo", new[] { "Zahozeno pozdě došlých paketů: {0}", "Late (out-of-order) packets dropped: {0}" } },
         { "artnetHint", new[] {
             "SoundSwitch najde visualizér sám jako Art-Net zařízení „DJ Visualizer“. Při prvním spuštění povol aplikaci ve firewallu (privátní síť). Nespouštěj zároveň Play v Unity. Přijímá se i sACN (E1.31, UDP 5568) – v ovladači zvol unicast na IP tohoto počítače, nebo multicast (přihlásí se k universům z patche).",
@@ -213,8 +221,8 @@ public static class Loc
         { "controlsTitle", new[] { "Ovládání", "Controls" } },
         { "aboutTitle", new[] { "O aplikaci", "About" } },
         { "controlsText", new[] {
-            "Pravé tlačítko myši + pohyb myší – rozhlížení\nW A S D – pohyb,  Q / E – dolů / nahoru,  Shift – rychleji\n1 – 4 – pohledy kamery\nF11 – celá obrazovka\nF12 – screenshot (složka Screenshots)\nF5 – demo,  F6 / F7 – haze −/+,  F8 / F9 – světlo v sále −/+\nH – skrýt / zobrazit rozhraní\nEsc – zavřít okna / ukončit celou obrazovku",
-            "Right mouse button + mouse – look around\nW A S D – move,  Q / E – down / up,  Shift – faster\n1 – 4 – camera views\nF11 – fullscreen\nF12 – screenshot (Screenshots folder)\nF5 – demo,  F6 / F7 – haze −/+,  F8 / F9 – room light −/+\nH – hide / show interface\nEsc – close windows / exit fullscreen" } },
+            "Pravé tlačítko myši + pohyb myší – rozhlížení\nW A S D – pohyb,  Q / E – dolů / nahoru,  Shift – rychleji\n1 – 4 – pohledy kamery\nF11 – celá obrazovka\nF12 – screenshot (složka Screenshots)\nF10 – zmrazit scénu,  F5 – demo,  F6 / F7 – haze −/+,  F8 / F9 – světlo v sále −/+\nH – skrýt / zobrazit rozhraní\nEsc – zavřít okna / ukončit celou obrazovku",
+            "Right mouse button + mouse – look around\nW A S D – move,  Q / E – down / up,  Shift – faster\n1 – 4 – camera views\nF11 – fullscreen\nF12 – screenshot (Screenshots folder)\nF10 – freeze scene,  F5 – demo,  F6 / F7 – haze −/+,  F8 / F9 – room light −/+\nH – hide / show interface\nEsc – close windows / exit fullscreen" } },
         { "aboutText", new[] {
             "DMX Visualiser {0}\n\nVizualizace světel ze SoundSwitche přes Art-Net.\nSvětla se popisují profily (JSON) – vlastní přidáš do složky Profiles.\n\nVeksCZ  •  github.com/VeksCZ/XR_DMX_Visualiser",
             "DMX Visualiser {0}\n\nLighting visualisation from SoundSwitch over Art-Net.\nFixtures are described by profiles (JSON) – add your own to the Profiles folder.\n\nVeksCZ  •  github.com/VeksCZ/XR_DMX_Visualiser" } },

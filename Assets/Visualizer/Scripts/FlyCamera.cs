@@ -48,7 +48,7 @@ public class FlyCamera : MonoBehaviour
             pitch = Mathf.Clamp(pitch - delta.y * lookSpeed, -89f, 89f);
             transform.rotation = Quaternion.Euler(pitch, yaw, 0);
         }
-        float sp = speed * (fast ? 3f : 1f) * Time.deltaTime;
+        float sp = speed * (fast ? 3f : 1f) * Time.unscaledDeltaTime;
         transform.position += transform.rotation * new Vector3(move.x, 0, move.z) * sp + Vector3.up * move.y * sp;
     }
 }
