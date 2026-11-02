@@ -23,13 +23,18 @@ public static class BuildVisualizer
         var sb = Object.FindFirstObjectByType<SceneBuilder>();
         if (sb != null)
         {
-            if (sb.beamShader == null) sb.beamShader = Shader.Find("Visualizer/Beam");
-            if (sb.emissiveShader == null) sb.emissiveShader = Shader.Find("Visualizer/Emissive");
-            if (sb.litShader == null) sb.litShader = Shader.Find("Universal Render Pipeline/Lit");
-            if (sb.GetComponent<VisualizerMenu>() == null) sb.gameObject.AddComponent<VisualizerMenu>();
-            EditorUtility.SetDirty(sb);
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
+            // Scénu ukládat jen při skutečné změně, jinak build pokaždé přepíše Visualizer.unity
+            bool changed = false;
+            if (sb.beamShader == null) { sb.beamShader = Shader.Find("Visualizer/Beam"); changed = true; }
+            if (sb.emissiveShader == null) { sb.emissiveShader = Shader.Find("Visualizer/Emissive"); changed = true; }
+            if (sb.litShader == null) { sb.litShader = Shader.Find("Universal Render Pipeline/Lit"); changed = true; }
+            if (sb.GetComponent<VisualizerMenu>() == null) { sb.gameObject.AddComponent<VisualizerMenu>(); changed = true; }
+            if (changed)
+            {
+                EditorUtility.SetDirty(sb);
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+            }
         }
 
         PlayerSettings.companyName = "VeksCZ";
