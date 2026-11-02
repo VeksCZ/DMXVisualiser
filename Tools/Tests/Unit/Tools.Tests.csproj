@@ -12,6 +12,7 @@
   <ItemGroup>
     <Compile Include="../../../Assets/Visualizer/Scripts/Core/DmxProtocol.cs" Link="DmxProtocol.cs" />
     <Compile Include="../../../Assets/Visualizer/Scripts/Loc.cs" Link="Loc.cs" />
+    <Compile Include="../../../Assets/Visualizer/Scripts/Core/NetDiagnosis.cs" Link="NetDiagnosis.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -60,9 +60,25 @@ public class ArtNetReceiver : MonoBehaviour
 
     public bool HasData => Time.time - lastPacketTime < 2f;
 
+    int interfaceCount = -1;
+    float startedAt;
+
+    // Stav pro diagnostiku sítě (hlavní vlákno)
+    public NetState Net => new NetState
+    {
+        hasDataNow = HasData,
+        listeners = listeners.Count,
+        interfaces = interfaceCount,
+        polls = pollsAnswered,
+        packets = packetsReceived,
+        secondsSinceStart = Time.unscaledTime - startedAt,
+    };
+    public NetIssue Diagnose() => NetDiagnosis.Evaluate(Net);
+
     void OnEnable()
     {
         running = true;
+        startedAt = Time.unscaledTime;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         var bound = new List<string>();
@@ -74,6 +90,7 @@ public class ArtNetReceiver : MonoBehaviour
         SetBindInfo(bound);
 #else
         var ips = LocalIPv4();
+        interfaceCount = ips.Count;
         lastWant = IpSet(ips);
         joinIfaces.AddRange(ips);
         SetBindInfo(BindLocal(ips));
@@ -113,6 +130,7 @@ public class ArtNetReceiver : MonoBehaviour
         nextNetCheck = Time.unscaledTime + 5f;
         var ips = LocalIPv4();
         var want = IpSet(ips);
+        interfaceCount = ips.Count;
         if (want.SetEquals(lastWant)) return;
         lastWant = want;
         Debug.Log("Art-Net: změna sítě, naslouchám znovu (" + string.Join(", ", want) + ")");

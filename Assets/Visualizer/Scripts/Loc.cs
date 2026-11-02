@@ -171,6 +171,12 @@ public static class Loc
         { "listen", new[] { "Naslouchá", "Listening" } },
         { "pollReplies", new[] { "Odpovědí na ArtPoll: {0}", "ArtPoll replies: {0}" } },
         { "protocolInfo", new[] { "Protokol: {0}  •  universa s daty: {1}  •  sACN paketů: {2}", "Protocol: {0}  •  universes with data: {1}  •  sACN packets: {2}" } },
+        { "diagPortBusy", new[] { "Port 6454 se nepodařilo otevřít – drží ho jiný program. Zavři další visualizér / Art-Net nástroj a spusť aplikaci znovu.", "Could not open port 6454 – another program is using it. Close any other visualiser / Art-Net tool and restart the app." } },
+        { "diagNoInterface", new[] { "Počítač nemá aktivní síť. Připoj se k Wi-Fi nebo kabelu, aplikace se sama napojí.", "This computer has no active network. Connect to Wi-Fi or a cable – the app will pick it up by itself." } },
+        { "diagWaiting", new[] { "Čekám na SoundSwitch…", "Waiting for SoundSwitch…" } },
+        { "diagNoTraffic", new[] { "Ze SoundSwitche nic nedorazilo. Zkontroluj: 1) SoundSwitch běží a má zapnutý Art-Net, 2) je ve stejné síti, 3) firewall povoluje aplikaci v privátní síti (UDP 6454).", "Nothing has arrived from SoundSwitch. Check: 1) SoundSwitch is running with Art-Net enabled, 2) it is on the same network, 3) the firewall allows the app on private networks (UDP 6454)." } },
+        { "diagPolled", new[] { "SoundSwitch aplikaci vidí, ale neposílá DMX. V SoundSwitchi přiřaď zařízení „DJ Visualizer“ universe a zapni výstup (Universe One…).", "SoundSwitch sees the app but sends no DMX. In SoundSwitch assign a universe to the \"DJ Visualizer\" device and enable the output." } },
+        { "diagStopped", new[] { "Data přestala chodit. Zkontroluj, že SoundSwitch běží a výstup Art-Net není vypnutý (nebo Blackout/pauza).", "Data stopped arriving. Check that SoundSwitch is running and the Art-Net output is not off (or paused)." } },
         { "droppedInfo", new[] { "Zahozeno pozdě došlých paketů: {0}", "Late (out-of-order) packets dropped: {0}" } },
         { "artnetHint", new[] {
             "SoundSwitch najde visualizér sám jako Art-Net zařízení „DJ Visualizer“. Při prvním spuštění povol aplikaci ve firewallu (privátní síť). Nespouštěj zároveň Play v Unity. Přijímá se i sACN (E1.31, UDP 5568) – v ovladači zvol unicast na IP tohoto počítače, nebo multicast (přihlásí se k universům z patche).",

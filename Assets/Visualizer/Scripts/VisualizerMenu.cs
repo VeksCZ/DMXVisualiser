@@ -766,6 +766,22 @@ public partial class VisualizerMenu : MonoBehaviour
     }
 
     // ---- Ovládací panel ----
+    // Příčina, proč nechodí data (prázdné, když chodí nebo běží demo)
+    string DiagnosisText()
+    {
+        if (artnet == null || (patch != null && patch.forceDemo)) return null;
+        switch (artnet.Diagnose())
+        {
+            case NetIssue.PortBusy: return Loc.T("diagPortBusy");
+            case NetIssue.NoInterface: return Loc.T("diagNoInterface");
+            case NetIssue.Waiting: return Loc.T("diagWaiting");
+            case NetIssue.NoTraffic: return Loc.T("diagNoTraffic");
+            case NetIssue.PolledNoData: return Loc.T("diagPolled");
+            case NetIssue.Stopped: return Loc.T("diagStopped");
+            default: return null;
+        }
+    }
+
     void DrawPanel()
     {
         bool has = artnet != null && artnet.HasData;
@@ -775,6 +791,8 @@ public partial class VisualizerMenu : MonoBehaviour
                   : "<color=#f0b040>◐</color> " + Loc.T("demoRunning");
         var rich = new GUIStyle(sLabel) { richText = true };
         GUILayout.Label(st, rich);
+        string diag = DiagnosisText();
+        if (diag != null) GUILayout.Label(diag, sWarn);
         GUILayout.Space(8 * k);
 
         GUILayout.Label(Loc.T("camera") + "  (1–4)", sHead);
@@ -862,6 +880,8 @@ public partial class VisualizerMenu : MonoBehaviour
                 GUILayout.Label(Loc.T("listen") + ": " + artnet.bindInfo, sLabel);
                 GUILayout.Label(Loc.F("pollReplies", artnet.pollsAnswered), sLabel);
                 GUILayout.Label(Loc.F("protocolInfo", string.IsNullOrEmpty(artnet.lastProtocol) ? "-" : artnet.lastProtocol, artnet.ActiveUniverses, artnet.sacnPackets), sLabel);
+                string diag = DiagnosisText();
+                if (diag != null) GUILayout.Label(diag, sWarn);
                 if (artnet.droppedPackets > 0) GUILayout.Label(Loc.F("droppedInfo", artnet.droppedPackets), sWarn);
             }
             GUILayout.Space(8 * k);
