@@ -30,6 +30,7 @@ public static class BuildQuest
         // Rychlejší IL2CPP build (méně generovaného C++); na výkon této aplikace nemá znatelný vliv
         PlayerSettings.SetIl2CppCodeGeneration(android, UnityEditor.Build.Il2CppCodeGeneration.OptimizeSize);
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
+        PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel34;   // Meta Developer Dashboard přijímá nejvýš 34
         PlayerSettings.SetApplicationIdentifier(android, AppId);
         PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.Android, false);
         PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { UnityEngine.Rendering.GraphicsDeviceType.Vulkan });
@@ -99,6 +100,46 @@ public static class BuildQuest
         if (!ok) { if (Application.isBatchMode) EditorApplication.Exit(1); return; }
 
         Install();
+    }
+
+    // Podepsaný APK pro upload do Meta Developer Dashboard (release channel). Klíč a heslo mimo repo, stejně jako u XR House:
+    // %USERPROFILE%\.xrhouse\signing.json {"keystore","alias","password"}. Číslo sestavení (Bundle Version Code) se musí
+    // s každým uploadem zvýšit – nastavuje se ručně v Player Settings.
+    [System.Serializable] class SigningInfo { public string keystore, alias, password; }
+
+    [MenuItem("Tools/Visualizer/Quest: Build release APK (signed)")]
+    public static void BuildRelease()
+    {
+        string file = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".xrhouse", "signing.json");
+        SigningInfo si = null;
+        try { if (File.Exists(file)) si = JsonUtility.FromJson<SigningInfo>(File.ReadAllText(file)); } catch { }
+        if (si == null || string.IsNullOrEmpty(si.keystore) || !File.Exists(si.keystore) || string.IsNullOrEmpty(si.alias) || string.IsNullOrEmpty(si.password))
+        {
+            Debug.LogError("Quest release: chybí nebo je neúplný " + file + " (keystore, alias, password)");
+            if (Application.isBatchMode) EditorApplication.Exit(1);
+            return;
+        }
+        Setup();
+        PlayerSettings.Android.useCustomKeystore = true;
+        PlayerSettings.Android.keystoreName = si.keystore;
+        PlayerSettings.Android.keystorePass = si.password;
+        PlayerSettings.Android.keyaliasName = si.alias;
+        PlayerSettings.Android.keyaliasPass = si.password;
+        PlayerSettings.bundleVersion = BuildVisualizer.Version;
+        const string releaseApk = "Build/Quest/DMXVisualiser-release.apk";
+        Directory.CreateDirectory(Path.GetDirectoryName(releaseApk));
+        var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
+        var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+        {
+            scenes = scenes, locationPathName = releaseApk, target = BuildTarget.Android,
+            targetGroup = BuildTargetGroup.Android, options = BuildOptions.None,
+        });
+        // klíč ani heslo nesmí zůstat v ProjectSettings
+        PlayerSettings.Android.keystorePass = ""; PlayerSettings.Android.keyaliasPass = "";
+        PlayerSettings.Android.useCustomKeystore = false; PlayerSettings.Android.keystoreName = ""; PlayerSettings.Android.keyaliasName = "";
+        bool ok = report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded;
+        Debug.Log("Quest release: " + report.summary.result + " -> " + releaseApk + " (versionCode " + PlayerSettings.Android.bundleVersionCode + ", " + report.summary.totalSize / (1024 * 1024) + " MB, klíč " + Path.GetFileName(si.keystore) + ")");
+        if (!ok && Application.isBatchMode) EditorApplication.Exit(1);
     }
 
     [MenuItem("Tools/Visualizer/Quest: Install last APK")]

@@ -11,7 +11,7 @@ public class VRMenu : MonoBehaviour
 {
     const float W = 600f, H = 740f, Scale = 0.001f; // 0,6 × 0,74 m
 
-    class Btn { public RectTransform rt; public Image img; public Text label; public Action act; }
+    class Btn { public RectTransform rt; public Image img; public Text label; public Action act; public bool disabled; }
 
     VRRig rig;
     VisualizerMenu app;
@@ -33,6 +33,7 @@ public class VRMenu : MonoBehaviour
     static readonly Color cBtn = new Color(0.18f, 0.2f, 0.25f, 1f);
     static readonly Color cHover = new Color(0.25f, 0.45f, 0.85f, 1f);
     static readonly Color cOn = new Color(0.2f, 0.55f, 0.3f, 1f);
+    static readonly Color cOff = new Color(0.12f, 0.13f, 0.15f, 1f);
 
     void Start()
     {
@@ -186,6 +187,7 @@ public class VRMenu : MonoBehaviour
             f.Normalize();
             panel.position = rig.Head.position + f * 0.7f - Vector3.up * 0.05f;
             panel.rotation = Quaternion.LookRotation(f, Vector3.up);
+            env?.ProbeRoom();
             Refresh();
         }
     }
@@ -225,7 +227,7 @@ public class VRMenu : MonoBehaviour
                 dot.position = p - panel.forward * 0.002f;
                 foreach (var b in buttons)
                 {
-                    if (!b.rt.gameObject.activeInHierarchy) continue;
+                    if (!b.rt.gameObject.activeInHierarchy || b.disabled) continue;
                     Vector3 bp = b.rt.InverseTransformPoint(p);
                     if (b.rt.rect.Contains(new Vector2(bp.x, bp.y))) { hit = b; break; }
                 }
@@ -267,7 +269,14 @@ public class VRMenu : MonoBehaviour
         if (env != null)
         {
             passBtn.label.text = "Passthrough: " + (env.Passthrough ? Loc.T("vrOn") : Loc.T("vrOff"));
-            envScan.label.text = Loc.T("vrEnvScan") + (env.ScannedRoom ? "  (" + env.PlaneCount + ")" : "");
+            // bez naskenované místnosti je tlačítko vypnuté, s ní ukazuje počet ploch
+            bool none = env.Room == VREnvironment.RoomState.None && !env.ScannedRoom;
+            envScan.disabled = none;
+            if (none) envScan.label.text = Loc.T("vrEnvScanNone");
+            else if (env.Room == VREnvironment.RoomState.Searching) envScan.label.text = Loc.T("vrEnvScan") + "  (" + Loc.T("vrEnvSearching") + ")";
+            else if (env.Room == VREnvironment.RoomState.Found) envScan.label.text = Loc.T("vrEnvScan") + "  (" + (env.ScannedRoom ? env.PlaneCount : env.RoomPlaneCount) + ")";
+            else envScan.label.text = Loc.T("vrEnvScan");
+            envScan.label.color = none ? new Color(1, 1, 1, 0.4f) : Color.white;
         }
         if (Time.unscaledTime > feedbackUntil) feedback.text = "";
         RefreshColors();
@@ -275,7 +284,7 @@ public class VRMenu : MonoBehaviour
 
     void RefreshColors()
     {
-        foreach (var b in buttons) b.img.color = b == hover ? cHover : cBtn;
+        foreach (var b in buttons) b.img.color = b.disabled ? cOff : b == hover ? cHover : cBtn;
         if (app != null)
             for (int i = 0; i < camButtons.Count; i++)
                 if (camButtons[i] != hover && app.CurrentCamera == i) camButtons[i].img.color = cOn;

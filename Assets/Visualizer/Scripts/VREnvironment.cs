@@ -18,6 +18,14 @@ public class VREnvironment : MonoBehaviour
     public bool Placing { get; private set; }
     public int PlaneCount => planes.Count;
 
+    // Naskenovaná místnost: neznámo (ještě nezkoušeno) / hledá se / nalezena / žádná (tlačítko v menu je pak vypnuté)
+    public enum RoomState { Unknown, Searching, Found, None }
+    public RoomState Room { get; private set; } = RoomState.Unknown;
+    public int RoomPlaneCount { get; private set; }
+    bool probing;
+    float scanSince = -1f, lastProbe = -100f;
+    const float ScanTimeout = 4f;
+
     VRRig rig;
     SceneBuilder scene;
     VisualizerMenu app;
@@ -148,6 +156,7 @@ public class VREnvironment : MonoBehaviour
             var mr = p.gameObject.AddComponent<MeshRenderer>();
             p.gameObject.AddComponent<ARPlaneMeshVisualizer>();
             planes[p] = mr;
+            if (!ScannedRoom) p.gameObject.SetActive(false);   // při zkoušce přítomnosti místnosti nekreslit
         }
         foreach (var kv in e.removed) planes.Remove(kv.Value);
         RefreshPlaneMaterials();
@@ -240,8 +249,60 @@ public class VREnvironment : MonoBehaviour
         }
     }
 
+    bool ScenePermissionGranted()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        return UnityEngine.Android.Permission.HasUserAuthorizedPermission("com.oculus.permission.USE_SCENE");
+#else
+        return true;
+#endif
+    }
+
+    // Zjistí, jestli má Quest naskenovanou místnost: krátce zapne plochy a spočítá je. Jen když už je povolení
+    // k scéně uděleno (jinak by se dialog ukázal sám od sebe); bez povolení zůstane stav neznámý a tlačítko aktivní.
+    public void ProbeRoom()
+    {
+        if (probing || ScannedRoom || Time.unscaledTime - lastProbe < 15f || !ScenePermissionGranted()) return;
+        lastProbe = Time.unscaledTime;
+        StartCoroutine(ProbeRoomRoutine());
+    }
+
+    System.Collections.IEnumerator ProbeRoomRoutine()
+    {
+        probing = true;
+        Room = RoomState.Searching;
+        session.gameObject.SetActive(true);
+        planeManager.enabled = true;
+        float t = 0f;
+        while (t < ScanTimeout && planes.Count == 0 && !ScannedRoom) { t += Time.unscaledDeltaTime; yield return null; }
+        if (!ScannedRoom)
+        {
+            RoomPlaneCount = planes.Count;
+            Room = planes.Count > 0 ? RoomState.Found : RoomState.None;
+            planeManager.enabled = false;
+            foreach (var kv in planes) if (kv.Key != null) kv.Key.gameObject.SetActive(false);
+            session.gameObject.SetActive(Passthrough);
+        }
+        probing = false;
+    }
+
+    void TrackRoomScan()
+    {
+        if (!ScannedRoom) { scanSince = -1f; return; }
+        if (planes.Count > 0) { RoomPlaneCount = planes.Count; Room = RoomState.Found; scanSince = -1f; return; }
+        if (!ScenePermissionGranted()) return;               // čeká se na dialog
+        if (scanSince < 0f) { scanSince = Time.unscaledTime; Room = RoomState.Searching; }
+        else if (Time.unscaledTime - scanSince > ScanTimeout)
+        {
+            // žádné plochy → místnost není naskenovaná, zpět na virtuální sál
+            Room = RoomState.None; scanSince = -1f; lastProbe = Time.unscaledTime;
+            Apply(Passthrough, false); Save();
+        }
+    }
+
     void Update()
     {
+        TrackRoomScan();
         if (Passthrough && Time.time > nextDiag) { nextDiag = Time.time + 3f; LogDiag(); }
         if (!Placing || rig.RightAim == null) return;
         if (cancel.WasPressedThisFrame()) { StopPlacement(); return; }

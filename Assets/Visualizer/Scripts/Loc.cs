@@ -107,6 +107,8 @@ public static class Loc
         { "vrEnv", new[] { "Prostředí", "Environment" } },
         { "vrEnvVirtual", new[] { "Virtuální sál", "Virtual hall" } },
         { "vrEnvScan", new[] { "Naskenovaná místnost", "Scanned room" } },
+        { "vrEnvScanNone", new[] { "Naskenovaná místnost\n(nenalezena)", "Scanned room\n(none found)" } },
+        { "vrEnvSearching", new[] { "hledám…", "searching…" } },
         { "vrPlace", new[] { "Umístit DJ stolek", "Place DJ table" } },
         { "vrOn", new[] { "zap", "on" } },
         { "vrOff", new[] { "vyp", "off" } },

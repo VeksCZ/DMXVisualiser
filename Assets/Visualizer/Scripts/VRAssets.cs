@@ -7,5 +7,6 @@ public class VRAssets : ScriptableObject
     public GameObject leftController;
     public GameObject rightController;
     public Vector3 modelOffset = new Vector3(0f, -0.03f, -0.04f);   // posun modelu vůči OpenXR grip pose (jako OVRRuntimeController v Meta SDK)
-    public Vector3 modelRotation = new Vector3(-60f, 0f, 0f);
+    // Model z projektu (ne z Meta SDK) má osu Z (laser) i Y (tlačítka) obráceně vůči grip pose → 180° kolem X navíc
+    public Vector3 modelRotation = new Vector3(120f, 0f, 0f);
 }
