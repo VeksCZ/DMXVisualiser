@@ -1,0 +1,25 @@
+{
+    "id": "{C7700C4B-4047-45D2-8C40-D0D65E5883A5}",
+    "spectra": {
+        "blackoutOverride": false,
+        "colorsOverride": false,
+        "display": "",
+        "editMode": false,
+        "enabled": false,
+        "fullscreen": false,
+        "movementOverride": false,
+        "perfMode": false,
+        "strobeOverride": false,
+        "whiteOverride": false,
+        "windowHeight": 600,
+        "windowWidth": 800,
+        "windowX": 0,
+        "windowY": 0
+    },
+    "version": {
+        "build": 0,
+        "hotfix": 0,
+        "major": 2,
+        "minor": 11
+    }
+}
