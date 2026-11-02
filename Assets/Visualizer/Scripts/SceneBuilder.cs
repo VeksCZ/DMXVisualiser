@@ -170,9 +170,14 @@ public class SceneBuilder : MonoBehaviour
     float TrussZ => TableZ - BoothSize.z * 0.5f + 0.03f;
 
     // Postaví celou sestavu znovu (po změně seznamu, režimu nebo umístění)
+    // Sítě vytvořené pro konkrétní světla (lycra) – s přestavěním scény se musí uvolnit, jinak by při každé změně sestavy přibývaly
+    readonly System.Collections.Generic.List<Mesh> ownedMeshes = new System.Collections.Generic.List<Mesh>();
+
     public void Rebuild(System.Collections.Generic.List<FixtureEntry> list)
     {
         foreach (var fi in instances) if (fi.root != null) Destroy(fi.root.gameObject);
+        foreach (var m in ownedMeshes) if (m != null) Destroy(m);
+        ownedMeshes.Clear();
         instances.Clear();
         var slotCount = new System.Collections.Generic.Dictionary<string, int>();
         for (int i = 0; i < list.Count; i++)
@@ -378,6 +383,7 @@ public class SceneBuilder : MonoBehaviour
             tri.AddRange(new[] { k, k + 2, k + 1, k + 3, k + 4, k + 5 });
         }
         var mesh = new Mesh { name = "Lycra" };
+        ownedMeshes.Add(mesh);
         mesh.SetVertices(v);
         mesh.SetTriangles(tri, 0);
         mesh.RecalculateNormals();
