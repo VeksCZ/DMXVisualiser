@@ -13,7 +13,7 @@ using Debug = UnityEngine.Debug;
 // soubory přes starou verzi a aplikaci znovu spustí. Nastavení (settings.json) je jinde, zůstane.
 public class Updater : MonoBehaviour
 {
-    public const string Repo = "VeksCZ/XR_DMX_Visualiser";
+    public const string Repo = "VeksCZ/DmxVisualiser";
 
     public enum State { Idle, Checking, UpToDate, Available, Downloading, Installing, Error }
     public State state = State.Idle;

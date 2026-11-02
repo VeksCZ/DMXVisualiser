@@ -6,7 +6,7 @@ param([switch]$SettingsOnly, [switch]$Yes)   # -Yes = bez dotazů / no prompts
 $ErrorActionPreference = 'Continue'   # adb píše průběh na stderr; chyby se kontrolují ručně
 $here = $PSScriptRoot
 $pkg = 'cz.veks.dmxvisualiser'
-$repo = 'VeksCZ/XR_DMX_Visualiser'
+$repo = 'VeksCZ/DmxVisualiser'
 $remoteSettings = "/sdcard/Android/data/$pkg/files/settings.json"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
