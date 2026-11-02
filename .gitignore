@@ -13,6 +13,7 @@
 .vs/
 .idea/
 *.csproj
+!/Tools/Tests/**/*.csproj
 *.sln
 *.suo
 *.user
@@ -43,3 +44,7 @@ Thumbs.db
 /Assets/XR/Temp.meta
 /Assets/Resources/PerformanceTestRun*
 /Assets/StreamingAssets/RuntimeActionBindings.json*
+
+# .NET testy
+/Tools/Tests/**/bin/
+/Tools/Tests/**/obj/

@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using UnityEngine;
 
-// Art-Net přijímač: poslouchá UDP 6454, ukládá ArtDmx data podle universe
-// a odpovídá na ArtPoll, aby se aplikace v SoundSwitchi ukázala jako Art-Net zařízení.
+// DMX přijímač: Art-Net (UDP 6454) i sACN / E1.31 (UDP 5568, multicast i unicast).
+// Data ukládá do UniverseStore (až 32768 universů, kontrola pořadí paketů a priorit)
+// a na ArtPoll odpovídá, aby se aplikace v SoundSwitchi ukázala jako Art-Net zařízení.
+// Parsování paketů je v DmxProtocol.cs (bez Unity, má unit testy).
 //
 // Na stejném PC drží port 6454 i SoundSwitch (0.0.0.0:6454). Proto se navazujeme
 // přímo na IP adresy počítače – konkrétní adresa má ve Windows přednost před 0.0.0.0,
@@ -19,21 +20,35 @@ public class ArtNetReceiver : MonoBehaviour
     public int port = 6454;
 
     [Header("Stav (jen pro čtení)")]
-    public int packetsReceived;
+    public int packetsReceived;     // Art-Net + sACN dohromady
+    public int sacnPackets;
     public int pollsAnswered;
+    public int droppedPackets;      // pozdě došlé (mimo pořadí)
     public float lastPacketTime = -999f;
     public string lastSender;
+    public string lastProtocol;     // "Art-Net" / "sACN"
     public string bindInfo;
 
-    readonly byte[][] universes = new byte[16][];
-    readonly object lockObj = new object();
+    [Tooltip("Poslouchat i sACN (E1.31) na UDP 5568")]
+    public bool sacnEnabled = true;
+
+    readonly UniverseStore store = new UniverseStore();
     readonly List<Listener> listeners = new List<Listener>();
     volatile bool running;
-    int packetCounter, pollCounter;
+    int packetCounter, sacnCounter, pollCounter;
     volatile bool gotPacket;
-    string senderStr;
+    string senderStr, protoStr;
+    volatile int[] advertised = new int[0];     // universa (od 0) z patche – nabídnou se v ArtPollReply
 
-    static readonly byte[] Header = Encoding.ASCII.GetBytes("Art-Net\0");
+    // sACN: jeden socket na 0.0.0.0:5568, členství v multicastových skupinách podle universů v patchi
+    UdpClient sacn;
+    Thread sacnThread;
+    readonly List<IPAddress> joinIfaces = new List<IPAddress>();
+    readonly HashSet<int> joined = new HashSet<int>();      // čísla universů podle E1.31 (od 1)
+    const int MaxMulticastJoins = 20;                       // limit Windows i Linuxu na jeden socket
+
+    static readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+    static long NowMs => clock.ElapsedMilliseconds;
 
     class Listener
     {
@@ -46,7 +61,6 @@ public class ArtNetReceiver : MonoBehaviour
 
     void OnEnable()
     {
-        for (int i = 0; i < universes.Length; i++) universes[i] = new byte[512];
         running = true;
 
         var bound = new List<string>();
@@ -55,13 +69,16 @@ public class ArtNetReceiver : MonoBehaviour
         // proto 0.0.0.0 + multicast lock, jinak Wi-Fi broadcasty zahazuje.
         AcquireMulticastLock();
         if (TryListen(IPAddress.Any)) bound.Add("0.0.0.0");
+        joinIfaces.Add(IPAddress.Any);                  // multicast přes výchozí rozhraní
 #else
         foreach (var ip in LocalIPv4())
             if (TryListen(ip)) bound.Add(ip.ToString());
         if (bound.Count == 0 && TryListen(IPAddress.Any)) bound.Add("0.0.0.0");
+        joinIfaces.AddRange(LocalIPv4());
 #endif
 
         bindInfo = bound.Count > 0 ? string.Join(", ", bound) + " : " + port : "port " + port + " nejde otevřít";
+        if (sacnEnabled && StartSacn()) bindInfo += "  |  sACN : " + SacnProtocol.Port;
         Debug.Log("Art-Net: poslouchám na " + bindInfo);
     }
 
@@ -91,6 +108,10 @@ public class ArtNetReceiver : MonoBehaviour
         running = false;
         foreach (var l in listeners) { try { l.udp.Close(); } catch { } }
         listeners.Clear();
+        try { sacn?.Close(); } catch { }
+        sacn = null;
+        joined.Clear();
+        joinIfaces.Clear();
 #if UNITY_ANDROID && !UNITY_EDITOR
         try { multicastLock?.Call("release"); } catch { }
 #endif
@@ -123,8 +144,8 @@ public class ArtNetReceiver : MonoBehaviour
         nextAnnounce = Time.unscaledTime + 3f;
         try
         {
-            var reply = BuildPollReply(DefaultIP().GetAddressBytes());
-            listeners[0].udp.Send(reply, reply.Length, new IPEndPoint(IPAddress.Broadcast, port));
+            foreach (var reply in ArtNetProtocol.BuildPollReplies(DefaultIP().GetAddressBytes(), nodeName, advertised))
+                listeners[0].udp.Send(reply, reply.Length, new IPEndPoint(IPAddress.Broadcast, port));
         }
         catch { }
     }
@@ -140,17 +161,33 @@ public class ArtNetReceiver : MonoBehaviour
             gotPacket = false;
             lastPacketTime = Time.time;
             lastSender = senderStr;
+            lastProtocol = protoStr;
         }
         packetsReceived = packetCounter;
+        sacnPackets = sacnCounter;
         pollsAnswered = pollCounter;
+        droppedPackets = (int)store.Dropped;
     }
 
-    // Kopie aktuálních dat universe (0-15).
-    public bool GetUniverse(int universe, byte[] dest)
+    // Kopie aktuálních dat universe (od 0, tj. SoundSwitch „Universe 1“ = 0).
+    public bool GetUniverse(int universe, byte[] dest) => store.Get(universe, dest);
+
+    // Kolik universů právě dostává data.
+    public int ActiveUniverses => store.ActiveCount(NowMs);
+
+    // Universa použitá v patchi (od 0): ohlásí se v ArtPollReply a přihlásí se k nim sACN multicast.
+    // Volat z hlavního vlákna, klidně často – nic se nedělá, když se seznam nezměnil.
+    public void SetUniverses(IEnumerable<int> universes)
     {
-        if (universe < 0 || universe >= universes.Length) return false;
-        lock (lockObj) Buffer.BlockCopy(universes[universe], 0, dest, 0, 512);
-        return true;
+        var list = new SortedSet<int>();
+        if (universes != null) foreach (var u in universes) if (u >= 0 && u < UniverseStore.MaxUniverses) list.Add(u);
+        var arr = new int[list.Count];
+        list.CopyTo(arr);
+        bool same = arr.Length == advertised.Length;
+        for (int i = 0; same && i < arr.Length; i++) same = arr[i] == advertised[i];
+        if (same) return;
+        advertised = arr;
+        UpdateMulticast(list);
     }
 
     void Loop(Listener l)
@@ -160,28 +197,23 @@ public class ArtNetReceiver : MonoBehaviour
         {
             byte[] p;
             try { p = l.udp.Receive(ref ep); }
-            catch { if (!running) break; continue; }
-            if (p.Length < 12 || !StartsWithHeader(p)) continue;
-            int op = p[8] | (p[9] << 8);
+            catch { if (!running) break; Thread.Sleep(1); continue; }
 
-            if (op == 0x5000 && p.Length >= 18) // ArtDmx
+            int op = ArtNetProtocol.OpCode(p, p.Length);
+            if (op == ArtNetProtocol.OpDmx)
             {
-                int uni = p[14] & 0x0F;
-                int len = (p[16] << 8) | p[17];
-                len = Math.Min(Math.Min(len, 512), p.Length - 18);
-                lock (lockObj) Buffer.BlockCopy(p, 18, universes[uni], 0, len);
-                Interlocked.Increment(ref packetCounter);
-                senderStr = ep.Address.ToString();
-                gotPacket = true;
+                if (ArtNetProtocol.TryParseDmx(p, p.Length, out var d)) Accept(d, p, ep.Address, "Art-Net");
             }
-            else if (op == 0x2000) // ArtPoll
+            else if (op == ArtNetProtocol.OpPoll)
             {
                 try
                 {
                     var myIp = l.ip.Equals(IPAddress.Any) ? DefaultIP() : l.ip;
-                    var reply = BuildPollReply(myIp.GetAddressBytes());
-                    l.udp.Send(reply, reply.Length, new IPEndPoint(ep.Address, port));
-                    l.udp.Send(reply, reply.Length, new IPEndPoint(IPAddress.Broadcast, port));
+                    foreach (var reply in ArtNetProtocol.BuildPollReplies(myIp.GetAddressBytes(), nodeName, advertised))
+                    {
+                        l.udp.Send(reply, reply.Length, new IPEndPoint(ep.Address, port));
+                        l.udp.Send(reply, reply.Length, new IPEndPoint(IPAddress.Broadcast, port));
+                    }
                     Interlocked.Increment(ref pollCounter);
                 }
                 catch { }
@@ -189,43 +221,90 @@ public class ArtNetReceiver : MonoBehaviour
         }
     }
 
-    static bool StartsWithHeader(byte[] p)
+    void Accept(DmxPacket d, byte[] p, IPAddress from, string proto)
     {
-        for (int i = 0; i < 8; i++) if (p[i] != Header[i]) return false;
-        return true;
+        if (!store.Submit(d.universe, p, d.offset, d.length, d.sequence, d.priority, NowMs)) return;
+        Interlocked.Increment(ref packetCounter);
+        if (proto == "sACN") Interlocked.Increment(ref sacnCounter);
+        senderStr = from.ToString();
+        protoStr = proto;
+        gotPacket = true;
     }
 
-    byte[] BuildPollReply(byte[] ip)
+    // ---- sACN (E1.31) ----
+
+    bool StartSacn()
     {
-        var r = new byte[239];
-        Buffer.BlockCopy(Header, 0, r, 0, 8);
-        r[8] = 0x00; r[9] = 0x21;                       // OpPollReply
-        Buffer.BlockCopy(ip, 0, r, 10, 4);
-        r[14] = 0x36; r[15] = 0x19;                     // port 6454 (LE)
-        r[16] = 0; r[17] = 1;
-        r[20] = 0xFF; r[21] = 0xFF;                     // OEM
-        r[23] = 0xD0;                                   // Status1
-        WriteAscii(r, 26, nodeName, 17);
-        WriteAscii(r, 44, nodeName + " (Unity)", 63);
-        WriteAscii(r, 108, "#0001 [0000] OK", 63);
-        r[172] = 0; r[173] = 4;                         // 4 porty
-        for (int i = 0; i < 4; i++)
+        try
         {
-            r[174 + i] = 0x80;                          // výstup DMX = přijímá Art-Net
-            r[182 + i] = 0x80;
-            r[190 + i] = (byte)i;                       // universe 0-3
+            var udp = new UdpClient(AddressFamily.InterNetwork);
+            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            udp.Client.Bind(new IPEndPoint(IPAddress.Any, SacnProtocol.Port));
+            sacn = udp;
+            sacnThread = new Thread(SacnLoop) { IsBackground = true, Name = "sACN" };
+            sacnThread.Start();
+            UpdateMulticast(new SortedSet<int>(advertised));
+            return true;
         }
-        r[200] = 0x00;                                  // StNode
-        Buffer.BlockCopy(ip, 0, r, 207, 4);
-        r[211] = 1;
-        r[212] = 0x08;
-        return r;
+        catch (Exception e)
+        {
+            Debug.LogWarning("sACN: port " + SacnProtocol.Port + " – " + e.Message);
+            sacn = null;
+            return false;
+        }
     }
 
-    static void WriteAscii(byte[] dst, int offset, string s, int max)
+    void SacnLoop()
     {
-        var b = Encoding.ASCII.GetBytes(s);
-        Buffer.BlockCopy(b, 0, dst, offset, Math.Min(b.Length, max));
+        var udp = sacn;
+        var ep = new IPEndPoint(IPAddress.Any, 0);
+        while (running && udp != null)
+        {
+            byte[] p;
+            try { p = udp.Receive(ref ep); }
+            catch { if (!running) break; Thread.Sleep(1); continue; }
+            if (!SacnProtocol.TryParse(p, p.Length, out var d, out _)) continue;
+            if (d.terminated) { store.Release(d.universe); continue; }
+            Accept(d, p, ep.Address, "sACN");
+        }
+    }
+
+    // Přihlásí multicastové skupiny pro universa v patchi (a odhlásí ta, která z patche zmizela).
+    void UpdateMulticast(SortedSet<int> universesZeroBased)
+    {
+        var s = sacn;
+        if (s == null || !running) return;
+        var want = new HashSet<int>();
+        foreach (var u in universesZeroBased) want.Add(u + 1);
+
+        foreach (var n in new List<int>(joined))
+            if (!want.Contains(n)) { Membership(s, n, false); joined.Remove(n); }
+
+        foreach (var n in want)
+        {
+            if (joined.Contains(n)) continue;
+            if ((joined.Count + 1) * Math.Max(1, joinIfaces.Count) > MaxMulticastJoins)
+            {
+                Debug.LogWarning("sACN: moc universů pro multicast (max " + MaxMulticastJoins + " členství), universe " + n + " se nepřihlásí – unicast funguje dál");
+                continue;
+            }
+            Membership(s, n, true);
+            joined.Add(n);
+        }
+    }
+
+    void Membership(UdpClient s, int universeNumber, bool join)
+    {
+        var group = SacnProtocol.MulticastAddress(universeNumber);
+        foreach (var ifc in joinIfaces)
+        {
+            try
+            {
+                s.Client.SetSocketOption(SocketOptionLevel.IP, join ? SocketOptionName.AddMembership : SocketOptionName.DropMembership,
+                    new MulticastOption(group, ifc));
+            }
+            catch (Exception e) { if (join) Debug.LogWarning("sACN: " + group + " na " + ifc + " – " + e.Message); }
+        }
     }
 
     static List<IPAddress> LocalIPv4()

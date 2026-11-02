@@ -120,7 +120,7 @@ public static class Loc
             "Easiest: in SS set a Static Look with position Stage Center, click the button above and OK. The heads will then hit the cross in the middle of the dance floor." } },
         { "errOffset", new[] { "{0}: posun panu musí být −540 až 540°", "{0}: pan offset must be −540 to 540°" } },
         { "overlap", new[] { "⚠ Překrývá se s: {0}", "⚠ Overlaps with: {0}" } },
-        { "errUniverse", new[] { "{0}: universe musí být 1–16", "{0}: universe must be 1–16" } },
+        { "errUniverse", new[] { "{0}: universe musí být 1–32768", "{0}: universe must be 1–32768" } },
         { "errAddress", new[] { "{0}: adresa musí být 1–{1}", "{0}: address must be 1–{1}" } },
         { "errPos", new[] { "{0}: neplatné umístění (čísla v metrech a stupních)", "{0}: invalid placement (numbers in metres and degrees)" } },
         { "addFixture", new[] { "+ Přidat", "+ Add" } },
@@ -163,9 +163,11 @@ public static class Loc
         { "packetsInfo", new[] { "{0} paketů  •  {1} pkt/s", "{0} packets  •  {1} pkt/s" } },
         { "listen", new[] { "Naslouchá", "Listening" } },
         { "pollReplies", new[] { "Odpovědí na ArtPoll: {0}", "ArtPoll replies: {0}" } },
+        { "protocolInfo", new[] { "Protokol: {0}  •  universa s daty: {1}  •  sACN paketů: {2}", "Protocol: {0}  •  universes with data: {1}  •  sACN packets: {2}" } },
+        { "droppedInfo", new[] { "Zahozeno pozdě došlých paketů: {0}", "Late (out-of-order) packets dropped: {0}" } },
         { "artnetHint", new[] {
-            "SoundSwitch najde visualizér sám jako Art-Net zařízení „DJ Visualizer“. Při prvním spuštění povol aplikaci ve firewallu (privátní síť). Nespouštěj zároveň Play v Unity.",
-            "SoundSwitch finds the visualiser by itself as the Art-Net device \"DJ Visualizer\". On first launch allow the app in the firewall (private network). Don't run Unity Play mode at the same time." } },
+            "SoundSwitch najde visualizér sám jako Art-Net zařízení „DJ Visualizer“. Při prvním spuštění povol aplikaci ve firewallu (privátní síť). Nespouštěj zároveň Play v Unity. Přijímá se i sACN (E1.31, UDP 5568) – v ovladači zvol unicast na IP tohoto počítače, nebo multicast (přihlásí se k universům z patche).",
+            "SoundSwitch finds the visualiser by itself as the Art-Net device \"DJ Visualizer\". On first launch allow the app in the firewall (private network). Don't run Unity Play mode at the same time. sACN (E1.31, UDP 5568) is received as well – send unicast to this computer's IP, or multicast (the app joins the universes used in the patch)." } },
 
         // Stavová lišta
         { "live", new[] { "LIVE", "LIVE" } },

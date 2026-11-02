@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Unit testy bez Unity: síťová vrstva (DmxProtocol.cs), lokalizace (Loc.cs) a vestavěné profily světel. Bez Unity: spusť `dotnet test` v této složce.
+       Unity složku Tools/ nekompiluje, takže projekt nijak nevadí buildům. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../../Assets/Visualizer/Scripts/Core/DmxProtocol.cs" Link="DmxProtocol.cs" />
+    <Compile Include="../../../Assets/Visualizer/Scripts/Loc.cs" Link="Loc.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+</Project>

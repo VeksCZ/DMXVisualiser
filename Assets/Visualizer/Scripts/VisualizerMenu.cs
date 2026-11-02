@@ -447,7 +447,7 @@ public class VisualizerMenu : MonoBehaviour
             string nm = string.IsNullOrWhiteSpace(eName[i]) ? (p != null ? p.Label : f.profile) : eName[i].Trim();
             if (ch > 0)
             {
-                if (!int.TryParse(eUni[i], out int u) || u < 1 || u > 16) { settingsError = Loc.F("errUniverse", nm); settingsTab = 1; selFixture = i; return false; }
+                if (!int.TryParse(eUni[i], out int u) || u < 1 || u > UniverseStore.MaxUniverses) { settingsError = Loc.F("errUniverse", nm); settingsTab = 1; selFixture = i; return false; }
                 if (!int.TryParse(eAddr[i], out int a) || a < 1 || a + ch - 1 > 512) { settingsError = Loc.F("errAddress", nm, 513 - ch); settingsTab = 1; selFixture = i; return false; }
                 f.universe = u; f.address = a;
             }
@@ -815,7 +815,7 @@ public class VisualizerMenu : MonoBehaviour
         var unis = new SortedSet<int>();
         if (patch != null) foreach (var f in patch.fixtures) unis.Add(f.universe);
 
-        string src = has ? Loc.T("source") + ": " + artnet.lastSender + "  •  " + Mathf.RoundToInt(pps) + " pkt/s"
+        string src = has ? Loc.T("source") + ": " + artnet.lastProtocol + " " + artnet.lastSender + "  •  " + Mathf.RoundToInt(pps) + " pkt/s"
                          : Loc.T("source") + ": " + Loc.T("noData");
         string text = state
             + "    " + src
@@ -996,6 +996,8 @@ public class VisualizerMenu : MonoBehaviour
                 GUILayout.Label(Loc.F("packetsInfo", artnet.packetsReceived, Mathf.RoundToInt(pps)), sLabel);
                 GUILayout.Label(Loc.T("listen") + ": " + artnet.bindInfo, sLabel);
                 GUILayout.Label(Loc.F("pollReplies", artnet.pollsAnswered), sLabel);
+                GUILayout.Label(Loc.F("protocolInfo", string.IsNullOrEmpty(artnet.lastProtocol) ? "-" : artnet.lastProtocol, artnet.ActiveUniverses, artnet.sacnPackets), sLabel);
+                if (artnet.droppedPackets > 0) GUILayout.Label(Loc.F("droppedInfo", artnet.droppedPackets), sWarn);
             }
             GUILayout.Space(8 * k);
             GUILayout.Label(Loc.T("artnetHint"), sDim);

@@ -1,0 +1,17 @@
+name: Tests
+
+# Unit testy bez Unity (síťová vrstva, lokalizace, vestavěné profily). Běží na každý push a pull request.
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: dotnet test
+        run: dotnet test Tools/Tests/Unit/Tools.Tests.csproj --nologo

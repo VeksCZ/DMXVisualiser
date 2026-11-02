@@ -67,8 +67,10 @@ public class DmxPatch : MonoBehaviour
     [Range(0, 1)] public float hazeDensity = 0.3f; // počáteční stav sálu
     public float hazeToBeam = 2.5f;                // převod hustoty na viditelnost paprsků
 
-    readonly byte[][] uniBuf = new byte[16][];
-    readonly int[] uniFrame = new int[16];
+    readonly Dictionary<int, byte[]> uniBuf = new Dictionary<int, byte[]>();
+    readonly Dictionary<int, int> uniFrame = new Dictionary<int, int>();
+    readonly HashSet<int> usedUniverses = new HashSet<int>();
+    float nextUniverseSync;
 
     void Start()
     {
@@ -80,6 +82,7 @@ public class DmxPatch : MonoBehaviour
     void Update()
     {
         if (artnet == null || scene == null) return;
+        SyncUniverses();
         bool live = artnet.HasData && !forceDemo;
         // demo jen na vyžádání; bez Art-Netu a bez dema je na světlech tma a nic se nehýbe
         if (demo != null) demo.enabled = forceDemo;
@@ -107,17 +110,28 @@ public class DmxPatch : MonoBehaviour
         scene.haze = Mathf.Clamp(0.05f + hazeDensity * hazeToBeam, 0f, 3f);
     }
 
+    // Přijímač se jednou za sekundu dozví, která universa patch používá (ArtPollReply, sACN multicast).
+    void SyncUniverses()
+    {
+        if (Time.unscaledTime < nextUniverseSync) return;
+        nextUniverseSync = Time.unscaledTime + 1f;
+        usedUniverses.Clear();
+        foreach (var f in fixtures)
+            if (f != null && f.Profile != null && !f.Profile.IsProp) usedUniverses.Add(f.universe - 1);
+        artnet.SetUniverses(usedUniverses);
+    }
+
     // Každé universe se z přijímače kopíruje nejvýš jednou za snímek.
     byte[] Uni(int u)
     {
-        if (u < 0 || u >= uniBuf.Length) return null;
-        if (uniBuf[u] == null) { uniBuf[u] = new byte[512]; uniFrame[u] = -1; }
+        if (u < 0 || u >= UniverseStore.MaxUniverses) return null;
+        if (!uniBuf.TryGetValue(u, out var buf)) { buf = new byte[512]; uniBuf[u] = buf; uniFrame[u] = -1; }
         if (uniFrame[u] != Time.frameCount)
         {
-            artnet.GetUniverse(u, uniBuf[u]);
+            artnet.GetUniverse(u, buf);
             uniFrame[u] = Time.frameCount;
         }
-        return uniBuf[u];
+        return buf;
     }
 
     // Kalibrace "aktuální pozice ze SS = bod target" (typicky střed parketu).
