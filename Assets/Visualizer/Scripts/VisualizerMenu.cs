@@ -110,6 +110,7 @@ public partial class VisualizerMenu : MonoBehaviour
         SetCamera(s.cameraPreset);
         if (s.fullscreen) GoFullscreen();
         else if (!Application.isEditor) Screen.SetResolution(s.windowWidth, s.windowHeight, FullScreenMode.Windowed);
+        if (WindowFeatures) StartCoroutine(RestoreWindow());
     }
 
     void Update()
@@ -392,10 +393,16 @@ public partial class VisualizerMenu : MonoBehaviour
     // Fullscreen vždy v nativním rozlišení monitoru; ovládací panel zůstane otevřený.
     void GoFullscreen()
     {
-        if (!IsFullscreen) { s.windowWidth = Screen.width; s.windowHeight = Screen.height; }
+        if (!IsFullscreen) { s.windowWidth = Screen.width; s.windowHeight = Screen.height; CaptureWindow(); }
         var d = Display.main;
         int w = d.systemWidth > 0 ? d.systemWidth : Screen.currentResolution.width;
         int h = d.systemHeight > 0 ? d.systemHeight : Screen.currentResolution.height;
+        if (WindowFeatures)
+        {
+            // celá obrazovka na monitoru, kde okno právě je (ne vždy na hlavním)
+            var cur = Screen.mainWindowDisplayInfo;
+            if (cur.width > 0 && cur.height > 0) { w = cur.width; h = cur.height; }
+        }
         Screen.SetResolution(w, h, FullScreenMode.FullScreenWindow);
         s.fullscreen = true;
         openMenu = -1;
@@ -439,6 +446,7 @@ public partial class VisualizerMenu : MonoBehaviour
 
     void Quit()
     {
+        CaptureWindow();
         s.Save();
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
@@ -449,7 +457,7 @@ public partial class VisualizerMenu : MonoBehaviour
 
     void OnApplicationQuit()
     {
-        if (s != null) s.Save();
+        if (s != null) { CaptureWindow(); s.Save(); }
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         // Pojistka: nastavení je uložené – kdyby se ukončování Unity zaseklo (vlákna, sokety, ovladač GPU),
         // proces se po 3 s ukončí sám, aby Windows nehlásily „program neodpovídá“.
@@ -478,6 +486,7 @@ public partial class VisualizerMenu : MonoBehaviour
             case 0:
                 l.Add(It(Loc.T("settingsMenu"), OpenSettings));
                 if (!VRRig.IsVR) l.Add(It(Loc.T("screenshot"), TakeScreenshot, "F12"));
+                if (DisplayCount() > 1) l.Add(It(Loc.T("nextMonitor"), MoveToNextDisplay));
                 l.Add(Sep());
                 l.Add(It(Loc.T("quit"), Quit, "Alt+F4"));
                 break;
@@ -488,6 +497,7 @@ public partial class VisualizerMenu : MonoBehaviour
             case 2:
                 l.Add(It(Loc.T("controlsMenu"), () => OpenWindow(WinControls)));
                 l.Add(It(Loc.T("updatesMenu"), () => { OpenWindow(WinUpdates); updater.Check(); }));
+                if (ErrorLog.Dir != null) l.Add(It(Loc.T("errorLogMenu"), () => OpenFolder(ErrorLog.Dir)));
                 l.Add(Sep());
                 l.Add(It(Loc.T("aboutMenu"), () => OpenWindow(WinAbout)));
                 break;

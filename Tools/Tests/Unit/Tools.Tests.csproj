@@ -14,6 +14,8 @@
     <Compile Include="../../../Assets/Visualizer/Scripts/Loc.cs" Link="Loc.cs" />
     <Compile Include="../../../Assets/Visualizer/Scripts/Core/NetDiagnosis.cs" Link="NetDiagnosis.cs" />
     <Compile Include="../../../Assets/Visualizer/Scripts/Core/AdaptiveQuality.cs" Link="AdaptiveQuality.cs" />
+    <Compile Include="../../../Assets/Visualizer/Scripts/Core/WindowPlacement.cs" Link="WindowPlacement.cs" />
+    <Compile Include="../../../Assets/Visualizer/Scripts/Core/ErrorLogThrottle.cs" Link="ErrorLogThrottle.cs" />
   </ItemGroup>
 
   <ItemGroup>

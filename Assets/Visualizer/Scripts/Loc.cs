@@ -16,6 +16,8 @@ public static class Loc
         { "panelMenu", new[] { "Ovládací panel", "Control panel" } },
         { "fullscreen", new[] { "Celá obrazovka", "Fullscreen" } },
         { "exitFullscreen", new[] { "Ukončit celou obrazovku", "Exit fullscreen" } },
+        { "nextMonitor", new[] { "Přesunout na další monitor", "Move to next monitor" } },
+        { "errorLogMenu", new[] { "Složka s chybovým logem", "Error log folder" } },
         { "screenshot", new[] { "Screenshot", "Screenshot" } },
         { "screenshotSaved", new[] { "Screenshot uložen: {0}", "Screenshot saved: {0}" } },
         { "screenshotFailed", new[] { "Screenshot se nepodařilo uložit", "Could not save the screenshot" } },

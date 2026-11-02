@@ -15,6 +15,9 @@ public class VisualizerSettings
     public bool fullscreen = false;
     public int windowWidth = 1600;
     public int windowHeight = 900;
+    public bool hasWindowPos = false;     // poslední pozice okna (vůči monitoru displayName)
+    public int windowX, windowY;
+    public string displayName = "";
     public string language = "";      // "cs" / "en", prázdné = podle systému
     public bool showStatusBar = true;
     public bool vrPassthrough = false;     // Quest: místo virtuálního sálu skutečné okolí z kamer
