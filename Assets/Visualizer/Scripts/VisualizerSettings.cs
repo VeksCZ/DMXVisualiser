@@ -52,14 +52,20 @@ public class VisualizerSettings
         }
     }
 
-    public static VisualizerSettings Load()
+    static VisualizerSettings ReadFile(string path)
     {
-        VisualizerSettings s = null;
         try
         {
-            if (File.Exists(FilePath)) s = JsonUtility.FromJson<VisualizerSettings>(File.ReadAllText(FilePath));
+            if (!File.Exists(path)) return null;
+            return JsonUtility.FromJson<VisualizerSettings>(File.ReadAllText(path));
         }
-        catch (Exception e) { Debug.LogWarning("Settings load failed: " + e.Message); }
+        catch (Exception e) { Debug.LogWarning("Settings load failed (" + Path.GetFileName(path) + "): " + e.Message); return null; }
+    }
+
+    public static VisualizerSettings Load()
+    {
+        // Poškozený soubor (pád při zápisu, ruční úprava) → zkusí se záloha settings.json.bak
+        VisualizerSettings s = ReadFile(FilePath) ?? ReadFile(FilePath + ".bak");
         if (s == null) s = new VisualizerSettings();
         bool empty = s.fixtures == null || s.fixtures.Count == 0;
         if (empty) s.fixtures = RigPresets.Mine();
@@ -136,7 +142,14 @@ public class VisualizerSettings
     public void Save()
     {
         EmbedProfiles();
-        try { File.WriteAllText(FilePath, JsonUtility.ToJson(this, true)); }
+        try
+        {
+            // Atomicky: zapsat vedle a vyměnit, předchozí verze zůstane jako .bak
+            string path = FilePath, tmp = path + ".tmp";
+            File.WriteAllText(tmp, JsonUtility.ToJson(this, true));
+            if (File.Exists(path)) File.Replace(tmp, path, path + ".bak");
+            else File.Move(tmp, path);
+        }
         catch (Exception e) { Debug.LogWarning("Settings save failed: " + e.Message); }
     }
 }
