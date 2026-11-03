@@ -226,8 +226,8 @@ public static class Loc
             "Pravé tlačítko myši + pohyb myší – rozhlížení\nW A S D – pohyb,  Q / E – dolů / nahoru,  Shift – rychleji\n1 – 4 – pohledy kamery\nF11 – celá obrazovka\nF12 – screenshot (složka Screenshots)\nF10 – zmrazit scénu,  F5 – demo,  F6 / F7 – haze −/+,  F8 / F9 – světlo v sále −/+\nH – skrýt / zobrazit rozhraní\nEsc – zavřít okna / ukončit celou obrazovku",
             "Right mouse button + mouse – look around\nW A S D – move,  Q / E – down / up,  Shift – faster\n1 – 4 – camera views\nF11 – fullscreen\nF12 – screenshot (Screenshots folder)\nF10 – freeze scene,  F5 – demo,  F6 / F7 – haze −/+,  F8 / F9 – room light −/+\nH – hide / show interface\nEsc – close windows / exit fullscreen" } },
         { "aboutText", new[] {
-            "DMX Visualiser {0}\n\nVizualizace světel ze SoundSwitche přes Art-Net.\nSvětla se popisují profily (JSON) – vlastní přidáš do složky Profiles.\n\nVeksCZ  •  github.com/VeksCZ/DmxVisualiser",
-            "DMX Visualiser {0}\n\nLighting visualisation from SoundSwitch over Art-Net.\nFixtures are described by profiles (JSON) – add your own to the Profiles folder.\n\nVeksCZ  •  github.com/VeksCZ/DmxVisualiser" } },
+            "DMX Visualiser {0}\n\nVizualizace světel ze SoundSwitche přes Art-Net.\nSvětla se popisují profily (JSON) – vlastní přidáš do složky Profiles.\n\nVeksCZ  •  github.com/VeksCZ/DMXVisualiser",
+            "DMX Visualiser {0}\n\nLighting visualisation from SoundSwitch over Art-Net.\nFixtures are described by profiles (JSON) – add your own to the Profiles folder.\n\nVeksCZ  •  github.com/VeksCZ/DMXVisualiser" } },
     };
 
     public static string T(string key)
