@@ -9,16 +9,16 @@ using UnityEngine.UI;
 // Na levém zápěstí je štítek se stavem (LIVE / DEMO).
 public class VRMenu : MonoBehaviour
 {
-    const float W = 600f, H = 740f, Scale = 0.001f; // 0,6 × 0,74 m
+    const float W = 600f, H = 814f, Scale = 0.001f; // 0,6 × 0,81 m
 
     class Btn { public RectTransform rt; public Image img; public Text label; public Action act; public bool disabled; }
 
     VRRig rig;
     VisualizerMenu app;
     VREnvironment env;
-    Btn envVirtual, envScan, passBtn;
+    Btn envVirtual, envScan, passBtn, heightDown, heightUp, heightReset;
     RectTransform panel;
-    Text status, hazeText, lightText, demoLabel, feedback, wrist;
+    Text status, hazeText, lightText, heightText, demoLabel, feedback, wrist;
     readonly List<Btn> buttons = new List<Btn>();
     readonly List<Btn> camButtons = new List<Btn>();
     InputAction menuBtn, trigger;
@@ -141,8 +141,15 @@ public class VRMenu : MonoBehaviour
         passBtn = Button(panel, "", 24, 526, hw, 60, () => env?.SetPassthrough(!env.Passthrough), 22);
         Button(panel, Loc.T("vrPlace"), 34 + hw, 526, hw, 60, () => { SetOpen(false); env?.StartPlacement(); }, 22);
 
-        Button(panel, Loc.T("vrCalib"), 24, 610, W - 48, 64, Calibrate, 22);
-        feedback = Label(panel, "", 24, 680, W - 48, 50, 20, TextAnchor.MiddleCenter);
+        // Výška pohledu (jen ve virtuálním sále; v passthrough musí svět sedět na skutečnou podlahu)
+        Label(panel, Loc.T("vrHeight"), 24, 600, 200, 60, 24);
+        heightDown = Button(panel, "−", 230, 600, 70, 60, () => rig?.AddHeight(-0.1f), 34);
+        heightText = Label(panel, "", 304, 600, 130, 60, 22, TextAnchor.MiddleCenter);
+        heightUp = Button(panel, "+", 438, 600, 70, 60, () => rig?.AddHeight(0.1f), 34);
+        heightReset = Button(panel, "0", 514, 600, 62, 60, () => rig?.SetHeight(0f), 26);
+
+        Button(panel, Loc.T("vrCalib"), 24, 684, W - 48, 64, Calibrate, 22);
+        feedback = Label(panel, "", 24, 754, W - 48, 50, 20, TextAnchor.MiddleCenter);
     }
 
     void BuildRay()
@@ -266,6 +273,12 @@ public class VRMenu : MonoBehaviour
         demoLabel.text = System.Text.RegularExpressions.Regex.Replace(app.DemoForced ? Loc.T("stopDemo") : Loc.T("startDemo"), @"^[^\p{L}]+", "");
         hazeText.text = app.HazePct + " %";
         lightText.text = app.RoomLightPct + " %";
+        if (rig != null)
+        {
+            bool locked = env != null && (env.Passthrough || env.ScannedRoom);
+            heightDown.disabled = heightUp.disabled = heightReset.disabled = locked;
+            heightText.text = locked ? Loc.T("vrHeightLocked") : (rig.HeightOffset >= 0 ? "+" : "−") + Mathf.Abs(rig.HeightOffset).ToString("0.0") + " m";
+        }
         if (env != null)
         {
             passBtn.label.text = "Passthrough: " + (env.Passthrough ? Loc.T("vrOn") : Loc.T("vrOff"));

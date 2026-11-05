@@ -126,6 +126,7 @@ public class VREnvironment : MonoBehaviour
             if (baseRenderScale < 0f) baseRenderScale = urp.renderScale;
             urp.renderScale = passthrough ? 1f : baseRenderScale * qualityFactor;
         }
+        if (passthrough || scanned) rig?.SetHeight(0f);   // svět musí sedět na skutečnou podlahu
         planeManager.enabled = scanned;
         foreach (var kv in planes) if (kv.Key != null) kv.Key.gameObject.SetActive(scanned);
 

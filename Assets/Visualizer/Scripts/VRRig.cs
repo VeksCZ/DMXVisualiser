@@ -128,6 +128,19 @@ public class VRRig : MonoBehaviour
         else if (Mathf.Abs(t) < 0.3f) turnReady = true;
     }
 
+    // Výška pohledu nad skutečnou (jen ve virtuálním sále; v passthrough / naskenované místnosti musí
+    // zůstat 0, jinak by virtuální světlo nesedělo na skutečnou podlahu).
+    public const float MinHeight = -0.6f, MaxHeight = 4f;
+    public float HeightOffset { get; private set; }
+
+    public void SetHeight(float h)
+    {
+        HeightOffset = Mathf.Clamp(Mathf.Round(h * 10f) / 10f, MinHeight, MaxHeight);
+        var p = transform.position; p.y = HeightOffset; transform.position = p;
+    }
+
+    public void AddHeight(float d) => SetHeight(HeightOffset + d);
+
     // Přesun na pohled (Parket / DJ / ...): hlava se ocitne nad bodem pos a dívá se k look.
     public void Teleport(Vector3 pos, Vector3 look)
     {
@@ -137,7 +150,7 @@ public class VRRig : MonoBehaviour
         float headYaw = head != null ? head.localEulerAngles.y : 0f;
         transform.rotation = Quaternion.Euler(0, wantYaw - headYaw, 0);
         Vector3 headOffset = head != null ? transform.TransformVector(new Vector3(head.localPosition.x, 0, head.localPosition.z)) : Vector3.zero;
-        transform.position = new Vector3(pos.x, 0, pos.z) - headOffset;
+        transform.position = new Vector3(pos.x, HeightOffset, pos.z) - headOffset;
     }
 
     void OnDestroy()
